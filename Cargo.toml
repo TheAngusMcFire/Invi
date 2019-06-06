@@ -1,0 +1,7 @@
+[package]
+name = "invi"
+version = "0.1.0"
+authors = ["TheAngusMcFire <crieger1@gmx.at>"]
+edition = "2018"
+
+[dependencies]
