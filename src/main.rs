@@ -21,27 +21,16 @@ fn main()
          {
             Event::Input(input) => match input 
             {
-                Key::Char('p') => 
-                {
-                    break;
-                }
                 Key::Char('\n') => 
                 {
-                    if gui_context.txt_input == ":q" 
+                    let input = gui::get_input_str_and_clear(&mut gui_context);
+                    if input == ":q" 
                     {
                         running = false;
                     }
                 }
-                Key::Char(c) => 
-                {
-                    gui_context.txt_input.push(c);
-                }
-                Key::Esc => {gui_context.txt_input.clear();}
-                Key::Backspace => 
-                {
-                    gui_context.txt_input.pop();
-                }
-                _ => {}
+
+                other => gui::handle_input_key(other, &mut gui_context)
             },
             _ => {}
         }

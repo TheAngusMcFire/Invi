@@ -20,7 +20,8 @@ use tui::widgets::{
 pub struct GuiContext
 {
     terminal : tui::Terminal<TermionBackend<termion::screen::AlternateScreen<termion::input::MouseTerminal<termion::raw::RawTerminal<std::io::Stdout>>>>>,
-    pub txt_input : String
+    pub txt_input : String,
+    pub cursor_pos : u16
 }
 
 
@@ -35,7 +36,8 @@ pub fn gui_init() -> GuiContext
     let mut context = GuiContext
     {
         terminal : Terminal::new(backend).unwrap(),
-        txt_input : String::new()
+        txt_input : String::new(),
+        cursor_pos : 0
     };
 
     //context.terminal.hide_cursor().unwrap();
@@ -86,7 +88,7 @@ pub fn draw_gui(context : &mut GuiContext)
     let text_field_pos = context.terminal.size().unwrap().height - 1;
     
 
-    write!(context.terminal.backend_mut(),"{}", Goto(2 + context.txt_input.len() as u16, text_field_pos)).unwrap();
+    write!(context.terminal.backend_mut(),"{}", Goto(2 + context.cursor_pos as u16, text_field_pos)).unwrap();
 
     io::stdout().flush().ok();
 }
@@ -99,7 +101,7 @@ fn draw_first_tab<B>(f: &mut Frame<B>, area: Rect) where B: Backend,
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
             .split(area);
 
-         Paragraph::new([Text::raw("This is just some text")].iter())
+         Paragraph::new([Text::raw("This is just some text, This is just some text,This is just some text, This is just some text")].iter())
                 .style(Style::default().fg(Color::Yellow))
                 .block(Block::default().borders(Borders::ALL).title("Input"))
                 .render(f, chunks[1]);
@@ -109,6 +111,51 @@ fn draw_first_tab<B>(f: &mut Frame<B>, area: Rect) where B: Backend,
                 .block(Block::default().borders(Borders::ALL).title("Input"))
                 .render(f, chunks[0]);
 
+}
+
+/* ****************************+ textfield handling ****************************+ */
+
+pub fn get_input_str_and_clear(gui_context : &mut GuiContext) -> String
+{
+    let tmp = gui_context.txt_input.clone();
+    gui_context.txt_input.clear();
+    gui_context.cursor_pos = 0;
+    return tmp;
+}
+
+pub fn handle_input_key (key : Key, gui_context : &mut GuiContext)
+{
+    match key 
+    {
+        Key::Char(c) =>   
+        {
+            gui_context.txt_input.insert(gui_context.cursor_pos as usize, c);
+            gui_context.cursor_pos += 1;
+        }
+
+        Key::Left => 
+        {
+            gui_context.cursor_pos = if gui_context.cursor_pos > 0 {gui_context.cursor_pos - 1} else {0}
+        }
+
+        Key::Right => 
+        {
+            gui_context.cursor_pos = if gui_context.cursor_pos < gui_context.txt_input.len() as u16
+             {gui_context.cursor_pos + 1} else {gui_context.txt_input.len() as u16}
+        }
+
+        Key::Home => {gui_context.cursor_pos = 0;}
+        Key::End => {gui_context.cursor_pos = gui_context.txt_input.len() as u16;}
+
+        Key::Esc =>       {gui_context.txt_input.clear();gui_context.cursor_pos = 0;}
+        Key::Backspace => 
+        {
+            if gui_context.cursor_pos > 0 {gui_context.txt_input.remove(gui_context.cursor_pos as usize -1);}
+            gui_context.cursor_pos = if gui_context.cursor_pos < gui_context.txt_input.len() as u16 
+            {gui_context.cursor_pos - 1} else {gui_context.txt_input.len() as u16};
+        }
+        _ => {}
+    }
 }
 
 
