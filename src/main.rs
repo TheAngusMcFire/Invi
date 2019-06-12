@@ -1,19 +1,49 @@
 
-struct SomeStruct
-{
-    test1 : u16,
-    test2 : u64,
-    sting : String
-}
+use termion::event::Key;
+use termion::input::TermRead;
 
-fn main() 
-{
-    let tst = SomeStruct {test1 : 25, test2 : 23, sting : String::from( "lol test")};
+mod gui;
+use crate::gui::{Events, Event};
 
-    test("this is a test", &tst);
-}
 
-fn test(msg : &str, stru : &SomeStruct)
+fn main()
 {
-    println!("Hello, world! {} {} {} {}",msg, stru.test1, stru.test2, stru.sting );
+    
+    let mut gui_context = gui::gui_init();
+    let events = gui::Events::new();
+    let mut running = true;
+
+    while running
+    {
+        gui::draw_gui(&mut gui_context);
+
+         match events.next().unwrap()
+         {
+            Event::Input(input) => match input 
+            {
+                Key::Char('p') => 
+                {
+                    break;
+                }
+                Key::Char('\n') => 
+                {
+                    if gui_context.txt_input == ":q" 
+                    {
+                        running = false;
+                    }
+                }
+                Key::Char(c) => 
+                {
+                    gui_context.txt_input.push(c);
+                }
+                Key::Esc => {gui_context.txt_input.clear();}
+                Key::Backspace => 
+                {
+                    gui_context.txt_input.pop();
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+    }
 }
