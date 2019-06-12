@@ -21,7 +21,9 @@ pub struct GuiContext
 {
     terminal : tui::Terminal<TermionBackend<termion::screen::AlternateScreen<termion::input::MouseTerminal<termion::raw::RawTerminal<std::io::Stdout>>>>>,
     pub txt_input : String,
-    pub cursor_pos : u16
+    pub cursor_pos : u16,
+    pub layout : u16,
+    pub txt_terminal : String
 }
 
 
@@ -32,12 +34,14 @@ pub fn gui_init() -> GuiContext
     let stdout = MouseTerminal::from(stdout);
     let stdout = AlternateScreen::from(stdout);
     let backend = TermionBackend::new(stdout);
-    
-    let mut context = GuiContext
+
+    let context = GuiContext
     {
         terminal : Terminal::new(backend).unwrap(),
         txt_input : String::new(),
-        cursor_pos : 0
+        cursor_pos : 0,
+        layout : 0,
+        txt_terminal : String::new(),
     };
 
     //context.terminal.hide_cursor().unwrap();
@@ -47,50 +51,50 @@ pub fn gui_init() -> GuiContext
 
 pub fn draw_gui(context : &mut GuiContext)
 {
- let vector : Vec<(&str, u64)> = vec!
-    [
-        ("X"    , 400),
-        ("Y"    , 400),
-        ("Z"    , 400),
-        ("Pitch", 400),
-        ("Roll" , 400),
-        ("Yaw"  , 400)
-    ];
-
     let txt : String = context.txt_input.clone();
+    let layout = context.layout;
+    let term_msg = context.txt_terminal.clone();
 
     context.terminal.draw(|mut f| 
     {
         let chunks = Layout::default()
-        .constraints([Constraint::Min(0),Constraint::Length(3)].as_ref())
+            .constraints([Constraint::Min(0),Constraint::Length(3)].as_ref())
             .direction(Direction::Vertical)
-            //.margin(2)
-            //.constraints([Constraint::Percentage(50), Constraint::Percentage(40), Constraint::Percentage(10)].as_ref())
             .split(f.size());
 
-        draw_first_tab (&mut f, chunks[0]);
+        match layout
+        {
+            0 => {draw_terminal (&mut f, chunks[0], &term_msg[..]);}
+            1 => {draw_first_tab (&mut f, chunks[0]);}
+            _ => {} 
+        }
        
        Paragraph::new([Text::raw(txt)].iter())
                 .style(Style::default().fg(Color::Yellow))
                 .block(Block::default().borders(Borders::ALL).title("Input"))
                 .render(&mut f, chunks[1]);
-        // BarChart::default()
-        //     .block(Block::default().title(" Space mouse values (press mouse btn1 to quit)").borders(Borders::ALL))
-        //     .data(&vector)
-        //     .bar_width((f.size().width as f32 / 6.4) as u16)
-        //     .max(800)
-        //     .style(Style::default().fg(Color::Red))
-        //     .value_style(Style::default().fg(Color::Black).bg(Color::Green))
-        //     .render(&mut f, chunks[0]);
-        
     }).unwrap();
 
     let text_field_pos = context.terminal.size().unwrap().height - 1;
-    
 
     write!(context.terminal.backend_mut(),"{}", Goto(2 + context.cursor_pos as u16, text_field_pos)).unwrap();
 
     io::stdout().flush().ok();
+}
+
+fn draw_terminal<B>(f: &mut Frame<B>, area: Rect, msg : &str) where B: Backend,
+{
+    let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            //.margin(2)
+            .constraints([Constraint::Percentage(50)].as_ref())
+            .split(area);
+ 
+        Paragraph::new([Text::raw(msg)].iter())
+                .style(Style::default().fg(Color::Yellow))
+                .block(Block::default().borders(Borders::ALL).title("Main Terminal"))
+                .render(f, chunks[0]);
+
 }
 
 fn draw_first_tab<B>(f: &mut Frame<B>, area: Rect) where B: Backend,

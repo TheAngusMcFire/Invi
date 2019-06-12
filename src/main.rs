@@ -24,9 +24,13 @@ fn main()
                 Key::Char('\n') => 
                 {
                     let input = gui::get_input_str_and_clear(&mut gui_context);
-                    if input == ":q" 
+                    
+                    match input.as_ref()
                     {
-                        running = false;
+                        ":q" => {running = false;}
+                        ":0" => {gui_context.layout = 0;}
+                        ":1" => {gui_context.layout = 1;}
+                        other => {gui_context.txt_terminal += &format!("{}\n",other)[..];}
                     }
                 }
 
