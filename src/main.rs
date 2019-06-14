@@ -22,7 +22,7 @@ fn main()
         {
             println!("Error while creating context:{}",err);
             println!("A temporary database will be used:(tmp.json)");
-            inventory::new_inventory("tmp.json".to_string());
+            inventory::new_inventory("tmp.json".to_string()).unwrap();
             gui::AppContext::new("tmp.json".to_string()).unwrap()
         }
     };
