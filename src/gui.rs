@@ -37,6 +37,11 @@ impl AppContext
             inventory    : load_inventory(file_name)?,
         });
     }
+
+    pub fn clear_terminal(&mut self)
+    {
+        self.txt_terminal.clear();
+    }
 }
 
 
@@ -69,6 +74,7 @@ fn draw_terminal<B>(f: &mut Frame<B>, area: Rect, msg : &str) where B: Backend,
         .constraints([Constraint::Percentage(50)].as_ref())
         .split(area);
  
+    //TODO: perform line wrap
     Paragraph::new([Text::raw(msg)].iter())
         .style(Style::default().fg(Color::Yellow))
         .block(Block::default().borders(Borders::ALL).title("Main Terminal"))

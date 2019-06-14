@@ -20,10 +20,13 @@ fn main()
         Ok(context) => context,
         Err(err) => 
         {
-            println!("Error while creating context:{}",err);
+            println!("Error while creating context:{}",&err);
             println!("A temporary database will be used:(tmp.json)");
             inventory::new_inventory("tmp.json".to_string()).unwrap();
-            gui::AppContext::new("tmp.json".to_string()).unwrap()
+            let mut con = gui::AppContext::new("tmp.json".to_string()).unwrap();
+            con.txt_terminal.push_str(&format!("Error while creating context:\n    {}\n",&err)[..]);
+            con.txt_terminal.push_str(&format!("A temporary database will be used:(tmp.json)\n")[..]);
+            con
         }
     };
 
@@ -67,6 +70,7 @@ fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
     match input.as_ref()
     {
         ":q" => {return true;}
+        ":ct" =>{context.clear_terminal();}
         ":0" => {context.layout = gui::InviLayout::Terminal}
         ":1" => {context.layout = gui::InviLayout::Search}
         other => {context.txt_terminal += &format!("{}\n",other)[..];}
