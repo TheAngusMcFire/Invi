@@ -1,21 +1,36 @@
+use std::io::{self, Write};
 
 use termion::event::Key;
-use termion::input::TermRead;
+use tui::backend::TermionBackend;
+use termion::input::MouseTerminal;
+use termion::raw::IntoRawMode;
+use termion::screen::AlternateScreen;
+use termion::cursor::Goto;
+use tui::Terminal;
 
 mod gui;
-use crate::gui::{Events, Event};
+use crate::gui::{Event};
 
 
 fn main()
-{
-    
-    let mut gui_context = gui::gui_init();
-    let events = gui::Events::new();
-    let mut running = true;
+{   
+    /* init all the terminal specific resources (from tui-rf example) */
+    let stdout   = io::stdout().into_raw_mode().unwrap();
+    let stdout   = MouseTerminal::from(stdout);
+    let stdout   = AlternateScreen::from(stdout);
+    let backend  = TermionBackend::new(stdout);
+    let mut terminal =  Terminal::new(backend).unwrap();
 
-    while running
+    let mut context = gui::AppContext::new();
+
+    let events = gui::Events::new();
+
+    loop
     {
-        gui::draw_gui(&mut gui_context);
+        gui::draw(&mut terminal, &context);
+        let text_field_pos = terminal.size().unwrap().height - 1;
+        write!(terminal.backend_mut(),"{}", Goto(2 + context.cursor_pos as u16, text_field_pos)).unwrap();
+        io::stdout().flush().ok();
 
          match events.next().unwrap()
          {
@@ -23,18 +38,17 @@ fn main()
             {
                 Key::Char('\n') => 
                 {
-                    let input = gui::get_input_str_and_clear(&mut gui_context);
+                    let input = gui::get_input_str_and_clear(&mut context);
                     
                     match input.as_ref()
                     {
-                        ":q" => {running = false;}
-                        ":0" => {gui_context.layout = 0;}
-                        ":1" => {gui_context.layout = 1;}
-                        other => {gui_context.txt_terminal += &format!("{}\n",other)[..];}
+                        ":q" => {break;}
+                        ":0" => {context.layout = gui::InviLayout::Terminal}
+                        ":1" => {context.layout = gui::InviLayout::Search}
+                        other => {context.txt_terminal += &format!("{}\n",other)[..];}
                     }
                 }
-
-                other => gui::handle_input_key(other, &mut gui_context)
+                other => gui::handle_input_key(other, &mut context)
             },
             _ => {}
         }

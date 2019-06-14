@@ -1,125 +1,98 @@
 
-use std::io::{self, Write};
+use std::io::{self};
 
-use termion::input::MouseTerminal;
-use termion::raw::IntoRawMode;
-use termion::screen::AlternateScreen;
-use termion::cursor::Goto;
 
-use tui::backend::TermionBackend;
 use tui::{Frame, Terminal};
 use tui::backend::Backend;
 use tui::layout::{Constraint, Direction, Layout, Rect};
-use tui::style::{Color, Modifier, Style};
-use tui::widgets::canvas::{Canvas, Line, Map, MapResolution, Rectangle};
-use tui::widgets::{
-    Axis, BarChart, Block, Borders, Chart, Dataset, Gauge, List, Marker, Paragraph, Row,
-    SelectableList, Sparkline, Table, Tabs, Text, Widget,
-};
+use tui::style::{Color, Style};
+use tui::widgets::{ Block, Borders, Paragraph, Text, Widget};
 
-pub struct GuiContext
+pub enum InviLayout
 {
-    terminal : tui::Terminal<TermionBackend<termion::screen::AlternateScreen<termion::input::MouseTerminal<termion::raw::RawTerminal<std::io::Stdout>>>>>,
+    Terminal,
+    Search
+}
+
+pub struct AppContext
+{
     pub txt_input : String,
     pub cursor_pos : u16,
-    pub layout : u16,
+    pub layout : InviLayout,
     pub txt_terminal : String
 }
 
-
-
-pub fn gui_init() -> GuiContext
+impl AppContext
 {
-    let stdout = io::stdout().into_raw_mode().unwrap();
-    let stdout = MouseTerminal::from(stdout);
-    let stdout = AlternateScreen::from(stdout);
-    let backend = TermionBackend::new(stdout);
-
-    let context = GuiContext
+    pub fn new() -> AppContext
     {
-        terminal : Terminal::new(backend).unwrap(),
-        txt_input : String::new(),
-        cursor_pos : 0,
-        layout : 0,
-        txt_terminal : String::new(),
-    };
-
-    //context.terminal.hide_cursor().unwrap();
-
-    return context;
+        return AppContext
+        {
+            txt_input : String::new(),
+            cursor_pos : 0,
+            layout : InviLayout::Terminal,
+            txt_terminal : String::new(),
+        };
+    }
 }
 
-pub fn draw_gui(context : &mut GuiContext)
-{
-    let txt : String = context.txt_input.clone();
-    let layout = context.layout;
-    let term_msg = context.txt_terminal.clone();
 
-    context.terminal.draw(|mut f| 
+pub fn draw<B: Backend>(terminal: &mut Terminal<B>, context: &AppContext) 
+{
+    terminal.draw(|mut f| 
     {
         let chunks = Layout::default()
             .constraints([Constraint::Min(0),Constraint::Length(3)].as_ref())
             .direction(Direction::Vertical)
             .split(f.size());
 
-        match layout
+        match context.layout
         {
-            0 => {draw_terminal (&mut f, chunks[0], &term_msg[..]);}
-            1 => {draw_first_tab (&mut f, chunks[0]);}
-            _ => {} 
+            InviLayout::Terminal => {draw_terminal (&mut f, chunks[0], &context.txt_terminal[..]);}
+            InviLayout::Search => {draw_first_tab (&mut f, chunks[0]);}
         }
        
-       Paragraph::new([Text::raw(txt)].iter())
+       Paragraph::new([Text::raw(&context.txt_input[..])].iter())
                 .style(Style::default().fg(Color::Yellow))
                 .block(Block::default().borders(Borders::ALL).title("Input"))
                 .render(&mut f, chunks[1]);
     }).unwrap();
-
-    let text_field_pos = context.terminal.size().unwrap().height - 1;
-
-    write!(context.terminal.backend_mut(),"{}", Goto(2 + context.cursor_pos as u16, text_field_pos)).unwrap();
-
-    io::stdout().flush().ok();
 }
 
 fn draw_terminal<B>(f: &mut Frame<B>, area: Rect, msg : &str) where B: Backend,
 {
     let chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            //.margin(2)
-            .constraints([Constraint::Percentage(50)].as_ref())
-            .split(area);
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50)].as_ref())
+        .split(area);
  
-        Paragraph::new([Text::raw(msg)].iter())
-                .style(Style::default().fg(Color::Yellow))
-                .block(Block::default().borders(Borders::ALL).title("Main Terminal"))
-                .render(f, chunks[0]);
-
+    Paragraph::new([Text::raw(msg)].iter())
+        .style(Style::default().fg(Color::Yellow))
+        .block(Block::default().borders(Borders::ALL).title("Main Terminal"))
+        .render(f, chunks[0]);
 }
 
 fn draw_first_tab<B>(f: &mut Frame<B>, area: Rect) where B: Backend,
 {
     let chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            //.margin(2)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-            .split(area);
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .split(area);
 
-         Paragraph::new([Text::raw("This is just some text, This is just some text,This is just some text, This is just some text")].iter())
-                .style(Style::default().fg(Color::Yellow))
-                .block(Block::default().borders(Borders::ALL).title("Input"))
-                .render(f, chunks[1]);
+    Paragraph::new([Text::raw("This is just some text, This is just some text,This is just some text, This is just some text")].iter())
+        .style(Style::default().fg(Color::Yellow))
+        .block(Block::default().borders(Borders::ALL).title("Input"))
+        .render(f, chunks[1]);
 
-        Paragraph::new([Text::raw("This is just some other")].iter())
-                .style(Style::default().fg(Color::Yellow))
-                .block(Block::default().borders(Borders::ALL).title("Input"))
-                .render(f, chunks[0]);
-
+    Paragraph::new([Text::raw("This is just some other")].iter())
+        .style(Style::default().fg(Color::Yellow))
+        .block(Block::default().borders(Borders::ALL).title("Input"))
+        .render(f, chunks[0]);
 }
 
 /* ****************************+ textfield handling ****************************+ */
 
-pub fn get_input_str_and_clear(gui_context : &mut GuiContext) -> String
+pub fn get_input_str_and_clear(gui_context : &mut AppContext) -> String
 {
     let tmp = gui_context.txt_input.clone();
     gui_context.txt_input.clear();
@@ -127,31 +100,42 @@ pub fn get_input_str_and_clear(gui_context : &mut GuiContext) -> String
     return tmp;
 }
 
-pub fn handle_input_key (key : Key, gui_context : &mut GuiContext)
+pub fn handle_input_key (key : Key, gui_context : &mut AppContext)
 {
     match key 
     {
-        Key::Char(c) =>   
+        Key::Char(c) =>
         {
             gui_context.txt_input.insert(gui_context.cursor_pos as usize, c);
             gui_context.cursor_pos += 1;
         }
 
-        Key::Left => 
+        Key::Left =>
         {
             gui_context.cursor_pos = if gui_context.cursor_pos > 0 {gui_context.cursor_pos - 1} else {0}
         }
 
-        Key::Right => 
+        Key::Right =>
         {
             gui_context.cursor_pos = if gui_context.cursor_pos < gui_context.txt_input.len() as u16
-             {gui_context.cursor_pos + 1} else {gui_context.txt_input.len() as u16}
+            {gui_context.cursor_pos + 1} else {gui_context.txt_input.len() as u16}
         }
 
-        Key::Home => {gui_context.cursor_pos = 0;}
-        Key::End => {gui_context.cursor_pos = gui_context.txt_input.len() as u16;}
+        Key::Home => 
+        {
+            gui_context.cursor_pos = 0;
+        }
+        
+        Key::End => 
+        {
+            gui_context.cursor_pos = gui_context.txt_input.len() as u16;
+        }
 
-        Key::Esc =>       {gui_context.txt_input.clear();gui_context.cursor_pos = 0;}
+        Key::Esc => 
+        {
+            gui_context.txt_input.clear();gui_context.cursor_pos = 0;
+        }
+
         Key::Backspace => 
         {
             if gui_context.cursor_pos > 0 {gui_context.txt_input.remove(gui_context.cursor_pos as usize -1);}
@@ -214,7 +198,7 @@ impl Events
     pub fn with_config(config: Config) -> Events 
     {
         let (tx, rx) = mpsc::channel();
-        let input_handle = 
+        let _input_handle = 
         {
             let tx = tx.clone();
             thread::spawn(move || 
@@ -237,7 +221,7 @@ impl Events
             })
         };
 
-        let tick_handle = 
+        let _tick_handle = 
         {
             let tx = tx.clone();
             thread::spawn(move || 
