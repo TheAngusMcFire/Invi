@@ -1,12 +1,13 @@
 
 use std::io::{self};
-
+use std::error::Error;
 
 use tui::{Frame, Terminal};
 use tui::backend::Backend;
 use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Style};
 use tui::widgets::{ Block, Borders, Paragraph, Text, Widget};
+use crate::inventory::{Inventory,load_inventory};
 
 pub enum InviLayout
 {
@@ -19,20 +20,22 @@ pub struct AppContext
     pub txt_input : String,
     pub cursor_pos : u16,
     pub layout : InviLayout,
-    pub txt_terminal : String
+    pub txt_terminal : String,
+    pub inventory : Inventory
 }
 
 impl AppContext
 {
-    pub fn new() -> AppContext
+    pub fn new(file_name : String) -> Result<(AppContext), Box<dyn Error>> 
     {
-        return AppContext
+        return Ok(AppContext
         {
-            txt_input : String::new(),
-            cursor_pos : 0,
-            layout : InviLayout::Terminal,
+            txt_input    : String::new(),
+            cursor_pos   : 0,
+            layout       : InviLayout::Terminal,
             txt_terminal : String::new(),
-        };
+            inventory    : load_inventory(file_name)?,
+        });
     }
 }
 

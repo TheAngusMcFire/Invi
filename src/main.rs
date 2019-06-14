@@ -15,6 +15,18 @@ use crate::gui::{Event};
 
 fn main()
 {   
+    let mut context = match gui::AppContext::new("test.json".to_string())
+    {
+        Ok(context) => context,
+        Err(err) => 
+        {
+            println!("Error while creating context:{}",err);
+            println!("A temporary database will be used:(tmp.json)");
+            inventory::new_inventory("tmp.json".to_string());
+            gui::AppContext::new("tmp.json".to_string()).unwrap()
+        }
+    };
+
     /* init all the terminal specific resources (from tui-rf example) */
     let stdout   = io::stdout().into_raw_mode().unwrap();
     let stdout   = MouseTerminal::from(stdout);
@@ -22,7 +34,7 @@ fn main()
     let backend  = TermionBackend::new(stdout);
     let mut terminal =  Terminal::new(backend).unwrap();
 
-    let mut context = gui::AppContext::new();
+    
 
     let events = gui::Events::new();
 
@@ -41,17 +53,24 @@ fn main()
                 {
                     let input = gui::get_input_str_and_clear(&mut context);
                     
-                    match input.as_ref()
-                    {
-                        ":q" => {break;}
-                        ":0" => {context.layout = gui::InviLayout::Terminal}
-                        ":1" => {context.layout = gui::InviLayout::Search}
-                        other => {context.txt_terminal += &format!("{}\n",other)[..];}
-                    }
+                    if dispatch_input(&input[..], &mut context){break;}
                 }
                 other => gui::handle_input_key(other, &mut context)
             },
             _ => {}
         }
     }
+}
+
+fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
+{
+    match input.as_ref()
+    {
+        ":q" => {return true;}
+        ":0" => {context.layout = gui::InviLayout::Terminal}
+        ":1" => {context.layout = gui::InviLayout::Search}
+        other => {context.txt_terminal += &format!("{}\n",other)[..];}
+    }
+
+    return false;
 }
