@@ -9,6 +9,7 @@ use termion::cursor::Goto;
 use tui::Terminal;
 
 mod gui;
+mod inventory;
 use crate::gui::{Event};
 
 
