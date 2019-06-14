@@ -24,8 +24,8 @@ fn main()
             println!("A temporary database will be used:(tmp.json)");
             inventory::new_inventory("tmp.json".to_string()).unwrap();
             let mut con = gui::AppContext::new("tmp.json".to_string()).unwrap();
-            con.txt_terminal.push_str(&format!("Error while creating context:\n    {}\n",&err)[..]);
-            con.txt_terminal.push_str(&format!("A temporary database will be used:(tmp.json)\n")[..]);
+            con.write_to_terminal(&format!("Error while creating context:\n    {}\n",&err)[..]);
+            con.write_to_terminal(&format!("A temporary database will be used:(tmp.json)\n")[..]);
             con
         }
     };
@@ -37,13 +37,14 @@ fn main()
     let backend  = TermionBackend::new(stdout);
     let mut terminal =  Terminal::new(backend).unwrap();
 
-    
+
 
     let events = gui::Events::new();
 
     loop
     {
-        gui::draw(&mut terminal, &context);
+        context.check_if_changed(&terminal);
+        gui::draw(&mut terminal, &mut context);
         let text_field_pos = terminal.size().unwrap().height - 1;
         write!(terminal.backend_mut(),"{}", Goto(2 + context.cursor_pos as u16, text_field_pos)).unwrap();
         io::stdout().flush().ok();
@@ -73,7 +74,7 @@ fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
         ":ct" =>{context.clear_terminal();}
         ":0" => {context.layout = gui::InviLayout::Terminal}
         ":1" => {context.layout = gui::InviLayout::Search}
-        other => {context.txt_terminal += &format!("{}\n",other)[..];}
+        other => {context.write_to_terminal(&format!("{}\n",other)[..]);}
     }
 
     return false;

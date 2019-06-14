@@ -20,8 +20,10 @@ pub struct AppContext
     pub txt_input : String,
     pub cursor_pos : u16,
     pub layout : InviLayout,
-    pub txt_terminal : String,
-    pub inventory : Inventory
+    txt_terminal : String,
+    pub inventory : Inventory,
+    size_term : Rect,
+    gui_dirty    : bool,
 }
 
 impl AppContext
@@ -35,18 +37,45 @@ impl AppContext
             layout       : InviLayout::Terminal,
             txt_terminal : String::new(),
             inventory    : load_inventory(file_name)?,
+            size_term    : Rect::new(0,0,0,0),
+            gui_dirty    : true, 
         });
     }
 
     pub fn clear_terminal(&mut self)
     {
         self.txt_terminal.clear();
+        self.gui_dirty = true;
+    }
+    pub fn write_to_terminal(&mut self, msg : &str)
+    {
+        self.txt_terminal.push_str(msg);
+        self.gui_dirty = true;
+    }
+
+    pub fn check_if_changed<B: Backend>(&mut self, terminal: &Terminal<B>)
+    {
+        if self.size_term != terminal.size().unwrap()
+        {
+            self.gui_dirty = true
+        }
+
+        self.size_term = terminal.size().unwrap();
+    }
+
+    pub fn need_redraw(&mut self) -> bool
+    {
+        let dirty = self.gui_dirty;
+        self.gui_dirty = false;
+        return dirty;
     }
 }
 
 
-pub fn draw<B: Backend>(terminal: &mut Terminal<B>, context: &AppContext) 
+pub fn draw<B: Backend>(terminal: &mut Terminal<B>, context: &mut AppContext) 
 {
+    if context.need_redraw() != true {return;}
+
     terminal.draw(|mut f| 
     {
         let chunks = Layout::default()
@@ -106,6 +135,7 @@ pub fn get_input_str_and_clear(gui_context : &mut AppContext) -> String
     let tmp = gui_context.txt_input.clone();
     gui_context.txt_input.clear();
     gui_context.cursor_pos = 0;
+    gui_context.gui_dirty = true;
     return tmp;
 }
 
@@ -115,6 +145,7 @@ pub fn handle_input_key (key : Key, gui_context : &mut AppContext)
     {
         Key::Char(c) =>
         {
+            gui_context.gui_dirty = true;
             gui_context.txt_input.insert(gui_context.cursor_pos as usize, c);
             gui_context.cursor_pos += 1;
         }
@@ -142,11 +173,13 @@ pub fn handle_input_key (key : Key, gui_context : &mut AppContext)
 
         Key::Esc => 
         {
+            gui_context.gui_dirty = true;
             gui_context.txt_input.clear();gui_context.cursor_pos = 0;
         }
 
         Key::Backspace => 
         {
+            gui_context.gui_dirty = true;
             if gui_context.cursor_pos > 0 {gui_context.txt_input.remove(gui_context.cursor_pos as usize -1);}
             gui_context.cursor_pos = if gui_context.cursor_pos < gui_context.txt_input.len() as u16 
             {gui_context.cursor_pos - 1} else {gui_context.txt_input.len() as u16};
