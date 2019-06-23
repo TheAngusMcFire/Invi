@@ -2,32 +2,36 @@ use serde::{Serialize, Deserialize};
 use std::error::Error;
 use std::fs;
 
+type id_type = u32;
+
 #[derive(Serialize, Deserialize)]
 pub struct Inventory
 {
-    compartments    : Vec<Compartment>, 
+    compartments    : Vec<Compartment>,
+    containers      : Vec<Container>,
     tags            : Vec<Tag>,
-    cnt_compartment : u32,
-    cnt_container   : u32,
-    cnt_item        : u32,
-    cnt_tag         : u32
+    items           : Vec<Item>,
+    cnt_compartment : id_type,
+    cnt_container   : id_type,
+    cnt_item        : id_type,
+    cnt_tag         : id_type
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Compartment
 {
     name       : String,
-    id         : u32,
-    containers : Vec<Container>
+    id         : id_type,
+    containers : Vec<id_type>
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Container
 {
     name  : String,
-    id    : u32,
-    items : Vec<Item>,
-    tags  : Vec<Tag>
+    id    : id_type,
+    items : Vec<id_type>,
+    tags  : Vec<id_type>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -35,9 +39,9 @@ pub struct Item
 {
     name    : String,
     notes   : String,
-    id      : u32,
-    amount  : u32,
-    tags    : Vec<Tag>
+    id      : id_type,
+    amount  : id_type,
+    tags    : Vec<id_type>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -45,10 +49,8 @@ pub struct Tag
 {
     name  : String,
     notes : String,
-    id    : u32
+    id    : id_type
 }
-
-
 
 pub fn save_inventory(inventory : &Inventory, file_name : String) -> Result<(), Box<dyn Error>> 
 {
@@ -69,7 +71,9 @@ pub fn new_inventory(file_name : String) -> Result<(), Box<dyn Error>>
     let new_inventory = Inventory
     {
         compartments    : Vec::new(),
+        containers      : Vec::new(),
         tags            : Vec::new(),
+        items           : Vec::new(),
         cnt_compartment : 1,
         cnt_container   : 1,
         cnt_item        : 1,

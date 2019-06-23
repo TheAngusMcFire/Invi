@@ -14,7 +14,7 @@ pub enum InviLayout
     Terminal,
     Search
 }
-
+//eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 pub struct AppContext
 {
     pub txt_input : String,
@@ -47,6 +47,7 @@ impl AppContext
         self.txt_terminal.clear();
         self.gui_dirty = true;
     }
+    
     pub fn write_to_terminal(&mut self, msg : &str)
     {
         self.txt_terminal.push_str(msg);

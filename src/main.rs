@@ -20,8 +20,6 @@ fn main()
         Ok(context) => context,
         Err(err) => 
         {
-            println!("Error while creating context:{}",&err);
-            println!("A temporary database will be used:(tmp.json)");
             inventory::new_inventory("tmp.json".to_string()).unwrap();
             let mut con = gui::AppContext::new("tmp.json".to_string()).unwrap();
             con.write_to_terminal(&format!("Error while creating context:\n    {}\n",&err)[..]);
@@ -36,8 +34,6 @@ fn main()
     let stdout   = AlternateScreen::from(stdout);
     let backend  = TermionBackend::new(stdout);
     let mut terminal =  Terminal::new(backend).unwrap();
-
-
 
     let events = gui::Events::new();
 
