@@ -7,7 +7,7 @@ use tui::backend::Backend;
 use tui::layout::{Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Style};
 use tui::widgets::{ Block, Borders, Paragraph, Text, Widget};
-use crate::inventory::{Inventory,load_inventory};
+use crate::inventory::{Inventory,load_inventory,load_inventory_from_home};
 
 
 pub enum InviLayout
@@ -37,7 +37,7 @@ impl AppContext
             cursor_pos   : 0,
             layout       : InviLayout::Terminal,
             txt_terminal : String::new(),
-            inventory    : load_inventory(file_name)?,
+            inventory    : load_inventory_from_home()?,
             size_term    : Rect::new(0,0,0,0),
             gui_dirty    : true, 
         };

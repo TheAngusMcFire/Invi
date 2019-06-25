@@ -111,7 +111,7 @@ pub fn load_inventory_from_home() -> Result<Inventory, Box<dyn Error>>
 
     new_inventory(file_name.clone()).expect(&format!("Cloud not create new blank inventory database: {}",file_name));
 
-    panic!();
+    return Ok(load_inventory(get_file_location(FILE_NAME))?);
 }
 
 
