@@ -1,6 +1,10 @@
 use serde::{Serialize, Deserialize};
 use std::error::Error;
+use std::path::Path;
 use std::fs;
+use whoami;
+
+pub static FILE_NAME: &str = "base.json";
 
 type id_type = u32;
 
@@ -77,6 +81,40 @@ pub fn save_inventory(inventory : &Inventory, file_name : String) -> Result<(), 
     fs::write(file_name, serialized)?;
     return Ok(());
 }
+
+pub fn get_file_location(file_name : &str) -> String
+{
+    let user_name = &whoami::username();
+    let file_path = format!("/home/{}/.config/invi/{}",user_name,file_name);
+    return file_path;
+}
+
+pub fn save_inventory_to_home()  -> Result<(), Box<dyn Error>> 
+{
+
+
+    return Ok(());
+}
+
+pub fn load_inventory_from_home() -> Result<Inventory, Box<dyn Error>> 
+{
+    let file_name = get_file_location(FILE_NAME);
+
+    if Path::new(&file_name).exists()
+    {
+        return Ok(load_inventory(get_file_location(FILE_NAME))?);
+    }
+
+    let file_dir = get_file_location("");
+
+    fs::create_dir_all(Path::new(&file_dir)).expect(&format!("The default file could not be found and creating the directory {} failed", file_dir));
+
+    new_inventory(file_name.clone()).expect(&format!("Cloud not create new blank inventory database: {}",file_name));
+
+    panic!();
+}
+
+
 
 pub fn load_inventory(file_name : String) -> Result<Inventory, Box<dyn Error>> 
 {

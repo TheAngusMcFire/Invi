@@ -9,6 +9,7 @@ use tui::style::{Color, Style};
 use tui::widgets::{ Block, Borders, Paragraph, Text, Widget};
 use crate::inventory::{Inventory,load_inventory};
 
+
 pub enum InviLayout
 {
     Terminal,
@@ -30,7 +31,7 @@ impl AppContext
 {
     pub fn new(file_name : String) -> Result<(AppContext), Box<dyn Error>> 
     {
-        return Ok(AppContext
+        let context = AppContext
         {
             txt_input    : String::new(),
             cursor_pos   : 0,
@@ -39,7 +40,9 @@ impl AppContext
             inventory    : load_inventory(file_name)?,
             size_term    : Rect::new(0,0,0,0),
             gui_dirty    : true, 
-        });
+        };
+
+        return Ok(context);
     }
 
     pub fn clear_terminal(&mut self)
@@ -86,11 +89,11 @@ pub fn draw<B: Backend>(terminal: &mut Terminal<B>, context: &mut AppContext)
 
         match context.layout
         {
-            InviLayout::Terminal => {draw_terminal (&mut f, chunks[0], &context.txt_terminal[..]);}
+            InviLayout::Terminal => {draw_terminal (&mut f, chunks[0], &context.txt_terminal);}
             InviLayout::Search => {draw_first_tab (&mut f, chunks[0]);}
         }
        
-       Paragraph::new([Text::raw(&context.txt_input[..])].iter())
+       Paragraph::new([Text::raw(&context.txt_input)].iter())
                 .style(Style::default().fg(Color::Yellow))
                 .block(Block::default().borders(Borders::ALL).title("Input"))
                 .render(&mut f, chunks[1]);

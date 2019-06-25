@@ -1,4 +1,5 @@
 use std::io::{self, Write};
+use std::error::Error;
 
 use termion::event::Key;
 use tui::backend::TermionBackend;
@@ -13,7 +14,7 @@ mod inventory;
 use crate::gui::{Event};
 
 
-fn main()
+fn not_main() -> Result<(), Box<dyn Error>> 
 {   
     let mut context = match gui::AppContext::new("test.json".to_string())
     {
@@ -22,11 +23,15 @@ fn main()
         {
             inventory::new_inventory("tmp.json".to_string()).unwrap();
             let mut con = gui::AppContext::new("tmp.json".to_string()).unwrap();
-            con.write_to_terminal(&format!("Error while creating context:\n    {}\n",&err)[..]);
-            con.write_to_terminal(&format!("A temporary database will be used:(tmp.json)\n")[..]);
+            con.write_to_terminal(&format!("Error while creating context:\n    {}\n",&err));
+            con.write_to_terminal(&format!("A temporary database will be used:(tmp.json)\n"));
             con
         }
     };
+
+    context.write_to_terminal(&inventory::get_file_location(inventory::FILE_NAME));
+
+    inventory::load_inventory_from_home()?;
 
     /* init all the terminal specific resources (from tui-rf example) */
     let stdout   = io::stdout().into_raw_mode().unwrap();
@@ -53,12 +58,24 @@ fn main()
                 {
                     let input = gui::get_input_str_and_clear(&mut context);
                     
-                    if dispatch_input(&input[..], &mut context){break;}
+                    if dispatch_input(&input, &mut context){break;}
                 }
                 other => gui::handle_input_key(other, &mut context)
             },
             _ => {}
         }
+    }
+
+    return Ok(());
+}
+
+
+fn main()
+{
+    match not_main()
+    {
+        Err(err) => println!("Error while creating context:\n    {}\n",&err),
+        _ =>()
     }
 }
 
@@ -70,7 +87,7 @@ fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
         ":ct" =>{context.clear_terminal();}
         ":0" => {context.layout = gui::InviLayout::Terminal}
         ":1" => {context.layout = gui::InviLayout::Search}
-        other => {context.write_to_terminal(&format!("{}\n",other)[..]);}
+        other => {context.write_to_terminal(&format!("{}\n",other));}
     }
 
     return false;
