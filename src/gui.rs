@@ -150,15 +150,8 @@ fn get_target_index(in_str : &mut String, index : usize) -> usize
 
     for c in in_str.chars()
     {
-        if position == 0 {break;}
-
-        //if c.is_ascii()
-        //    {target_index += 1;}
-        //else if c.len_utf8()
-        //    {target_index += 2;}
-
+        if position == 0 {break;}}
         target_index += c.len_utf8();
-
         position -= 1;
     }
 
@@ -170,7 +163,7 @@ fn get_len_any(in_str : & String) -> usize
     let mut cnt : usize = 0; 
 
     for c in in_str.chars()
-    {cnt += 1;}
+        {cnt += 1;}
 
     return cnt;
 }
@@ -194,25 +187,6 @@ pub fn handle_input_key (key : Key, gui_context : &mut AppContext)
         Key::Char(c) =>
         {
             gui_context.gui_dirty = true;
-            //let in_str = &format!("{} ", c as char );
-            //gui_context.write_to_terminal(&format!("{} ", c as char ));
-            //gui_context.txt_input.push(c);
-
-            //let mut tmp : String = String::new();
-            //tmp[0] =  'a';
-            //tmp[1] =  'b';
-            //tmp.insert(2,'b'); 
-            
-
-            //let front = &gui_context.txt_input[0..gui_context.cursor_pos as usize];
-            //let back = &gui_context.txt_input[gui_context.cursor_pos as usize ..];
-            //let new_str = format!("{}{}{}",front,c,back);
-            //gui_context.txt_input.clear();
-            //gui_context.txt_input.push_str(&new_str);
-
-            //if !c.is_ascii(){return;}
-            
-            //gui_context.txt_input.insert(gui_context.cursor_pos as usize, c);
             insert_any(&mut gui_context.txt_input, gui_context.cursor_pos as usize, c);
             gui_context.cursor_pos += 1;
         }
