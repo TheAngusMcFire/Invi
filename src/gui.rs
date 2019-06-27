@@ -143,6 +143,50 @@ pub fn get_input_str_and_clear(gui_context : &mut AppContext) -> String
     return tmp;
 }
 
+fn get_target_index(in_str : &mut String, index : usize) -> usize
+{
+    let mut target_index : usize = 0;
+    let mut position = index;
+
+    for c in in_str.chars()
+    {
+        if position == 0 {break;}
+
+        //if c.is_ascii()
+        //    {target_index += 1;}
+        //else if c.len_utf8()
+        //    {target_index += 2;}
+
+        target_index += c.len_utf8();
+
+        position -= 1;
+    }
+
+    return target_index;
+}
+
+fn get_len_any(in_str : & String) -> usize
+{
+    let mut cnt : usize = 0; 
+
+    for c in in_str.chars()
+    {cnt += 1;}
+
+    return cnt;
+}
+
+fn remote_any(in_str : &mut String, index : usize)
+{
+    let target = get_target_index(in_str, index);
+    in_str.remove(target);
+}
+
+fn insert_any(in_str : &mut String, index : usize, ch : char)
+{
+    let target = get_target_index(in_str, index);
+    in_str.insert(target, ch);
+}
+
 pub fn handle_input_key (key : Key, gui_context : &mut AppContext)
 {
     match key 
@@ -166,8 +210,10 @@ pub fn handle_input_key (key : Key, gui_context : &mut AppContext)
             //gui_context.txt_input.clear();
             //gui_context.txt_input.push_str(&new_str);
 
-            if !c.is_ascii(){return;}
-            gui_context.txt_input.insert(gui_context.cursor_pos as usize, c);
+            //if !c.is_ascii(){return;}
+            
+            //gui_context.txt_input.insert(gui_context.cursor_pos as usize, c);
+            insert_any(&mut gui_context.txt_input, gui_context.cursor_pos as usize, c);
             gui_context.cursor_pos += 1;
         }
 
@@ -178,8 +224,8 @@ pub fn handle_input_key (key : Key, gui_context : &mut AppContext)
 
         Key::Right =>
         {
-            gui_context.cursor_pos = if gui_context.cursor_pos < gui_context.txt_input.len() as u16
-            {gui_context.cursor_pos + 1} else {gui_context.txt_input.len() as u16}
+            gui_context.cursor_pos = if gui_context.cursor_pos < get_len_any(&gui_context.txt_input) as u16
+            {gui_context.cursor_pos + 1} else {get_len_any(&gui_context.txt_input) as u16}
         }
 
         Key::Home => 
@@ -189,7 +235,7 @@ pub fn handle_input_key (key : Key, gui_context : &mut AppContext)
         
         Key::End => 
         {
-            gui_context.cursor_pos = gui_context.txt_input.len() as u16;
+            gui_context.cursor_pos = get_len_any(&gui_context.txt_input) as u16;
         }
 
         Key::Esc => 
@@ -201,9 +247,9 @@ pub fn handle_input_key (key : Key, gui_context : &mut AppContext)
         Key::Backspace => 
         {
             gui_context.gui_dirty = true;
-            if gui_context.cursor_pos > 0 {gui_context.txt_input.remove(gui_context.cursor_pos as usize -1);}
-            gui_context.cursor_pos = if gui_context.cursor_pos < gui_context.txt_input.len() as u16 
-            {gui_context.cursor_pos - 1} else {gui_context.txt_input.len() as u16};
+            if gui_context.cursor_pos > 0 {remote_any(&mut gui_context.txt_input,gui_context.cursor_pos as usize -1);}
+            gui_context.cursor_pos = if gui_context.cursor_pos < get_len_any(&gui_context.txt_input) as u16 
+            {gui_context.cursor_pos - 1} else {get_len_any(&gui_context.txt_input) as u16};
         }
         _ => {}
     }
