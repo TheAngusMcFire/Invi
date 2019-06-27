@@ -15,7 +15,7 @@ use crate::gui::{Event};
 
 
 fn not_main() -> Result<(), Box<dyn Error>> 
-{   
+{
     let mut context = match gui::AppContext::new("test.json".to_string())
     {
         Ok(context) => context,
@@ -29,9 +29,10 @@ fn not_main() -> Result<(), Box<dyn Error>>
         }
     };
 
-    context.write_to_terminal(&inventory::get_file_location(inventory::FILE_NAME));
 
-    inventory::load_inventory_from_home()?;
+    let greeting_string = &inventory::get_file_location(inventory::FILE_NAME);
+    context.write_to_terminal(&format!("Using default file: {}\n",greeting_string));
+
 
     /* init all the terminal specific resources (from tui-rf example) */
     let stdout   = io::stdout().into_raw_mode().unwrap();
