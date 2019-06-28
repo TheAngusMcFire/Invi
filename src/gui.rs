@@ -150,7 +150,7 @@ fn get_target_index(in_str : &mut String, index : usize) -> usize
 
     for c in in_str.chars()
     {
-        if position == 0 {break;}}
+        if position == 0 {break;}
         target_index += c.len_utf8();
         position -= 1;
     }

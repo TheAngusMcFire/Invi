@@ -70,18 +70,54 @@ fn not_main() -> Result<(), Box<dyn Error>>
     return Ok(());
 }
 
-
-fn main()
+fn get_arguments(in_str :&str) -> Vec<String>
 {
-    match not_main()
+    let mut args : Vec<String> = Vec::new();
+
+    let mut tmp_string    = String::new();
+    let mut quote_started : bool = false;
+
+    for ch in in_str.chars()
     {
-        Err(err) => println!("Error while creating context:\n    {}\n",&err),
-        _ =>()
+        match ch
+        {
+            '\"' => 
+            {
+                if quote_started
+                {
+                    args.push(tmp_string.clone()); 
+                    tmp_string.clear();
+                    quote_started = false;
+                }
+                else{ quote_started = true; }
+            }
+
+            ' ' => 
+            {
+                if quote_started {tmp_string.push(ch)} 
+                else 
+                {
+                    if tmp_string.len() == 0 {continue;} 
+                    args.push(tmp_string.clone()); 
+                    tmp_string.clear();
+                }
+            }
+            _   => tmp_string.push(ch)
+        }
     }
+
+    if tmp_string.len() != 0 {args.push(tmp_string.clone());}
+
+    return args;
 }
+
 
 fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
 {
+
+    let args = get_arguments(input);
+    context.write_to_terminal(&format!("{:?}\n",args));
+
     match input.as_ref()
     {
         ":q" => {return true;}
@@ -93,3 +129,13 @@ fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
 
     return false;
 }
+
+fn main()
+{
+    match not_main()
+    {
+        Err(err) => println!("Error while creating context:\n    {}\n",&err),
+        _ =>()
+    }
+}
+
