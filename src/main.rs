@@ -73,28 +73,27 @@ fn not_main() -> Result<(), Box<dyn Error>>
 fn get_arguments(in_str :&str) -> Vec<String>
 {
     let mut args : Vec<String> = Vec::new();
-
-    let mut tmp_string    = String::new();
-    let mut quote_started : bool = false;
+    let mut tmp_string         = String::new();
+    let mut quote_start : bool = false;
 
     for ch in in_str.chars()
     {
         match ch
         {
-            '\"' => 
+            ('\"') => 
             {
-                if quote_started
+                if quote_start
                 {
                     args.push(tmp_string.clone()); 
                     tmp_string.clear();
-                    quote_started = false;
+                    quote_start = false;
                 }
-                else{ quote_started = true; }
+                else{ quote_start = true; }
             }
 
-            ' ' => 
+            (' ') => 
             {
-                if quote_started {tmp_string.push(ch)} 
+                if quote_start {tmp_string.push(ch)} 
                 else 
                 {
                     if tmp_string.len() == 0 {continue;} 
@@ -116,15 +115,16 @@ fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
 {
 
     let args = get_arguments(input);
-    context.write_to_terminal(&format!("{:?}\n",args));
 
-    match input.as_ref()
+    if args.len() == 0 {return false;}
+
+    match args[0].as_ref()
     {
         ":q" => {return true;}
         ":ct" =>{context.clear_terminal();}
         ":0" => {context.layout = gui::InviLayout::Terminal}
         ":1" => {context.layout = gui::InviLayout::Search}
-        other => {context.write_to_terminal(&format!("{}\n",other));}
+        _ => {context.write_to_terminal(&format!("No use for args {:?}\n",args));}
     }
 
     return false;
