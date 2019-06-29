@@ -8,6 +8,7 @@ pub static FILE_NAME: &str = "base.json";
 
 type id_type = u32;
 
+
 #[derive(Serialize, Deserialize)]
 pub struct Inventory
 {
@@ -56,6 +57,12 @@ pub struct Tag
     id    : id_type
 }
 
+//trait IdObject{fn get_id(&self) -> u32; }
+//impl IdObject for Tag        { fn get_id(&self) -> id_type {return self.id;} }
+//impl IdObject for Item       { fn get_id(&self) -> id_type {return self.id;} }
+//impl IdObject for Container  { fn get_id(&self) -> id_type {return self.id;} }
+//impl IdObject for Compartment{ fn get_id(&self) -> id_type {return self.id;} }
+
 pub struct SearchResult <'a>
 {
     compartments    : Vec<&'a Compartment>,
@@ -74,6 +81,61 @@ pub fn search<'a>(key_word : &str, inv :&'a Inventory) -> SearchResult <'a>
         items           : Vec::new()
     }
 }
+
+impl Inventory
+{
+    pub fn check_tags_ids(&self, ids : &Vec<id_type>) -> Result<(),String>
+    {
+        'main_loop : for id in ids
+        {
+            for tag in self.tags.iter()
+            {
+                if &tag.id == id 
+                {
+                    continue 'main_loop;
+                }
+            }
+            return Err(format!("{}",id));
+        }
+        return Ok(());
+    }
+
+    pub fn add_tag(&mut self, name : &str, notes : &str)
+    {
+        self.tags.push
+        (
+            Tag
+            {
+                name  : String::from(name),
+                notes : String::from(notes),
+                id : self.cnt_tag
+            }
+        );
+        self.cnt_tag += 1;
+    }
+
+    pub fn add_item(&mut self, name : &str, notes : &str, amount : id_type, tags : Vec<id_type>) -> Result<(),String>
+    {
+        match self.check_tags_ids(&tags) {Err(e) => {return Err(format!("Check the tag ids, {} was not found!!!",e));} _=> {}}
+
+        self.items.push
+        (
+            Item
+            {
+                name  : String::from(name),
+                notes : String::from(notes),
+                id : self.cnt_item,
+                amount : amount,
+                tags : Vec::from(tags)
+            }
+        );
+        self.cnt_item += 1;
+
+        return Ok(());
+    }
+}
+
+
 
 pub fn save_inventory(inventory : &Inventory, file_name : String) -> Result<(), Box<dyn Error>> 
 {

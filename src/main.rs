@@ -113,7 +113,6 @@ fn get_arguments(in_str :&str) -> Vec<String>
 
 fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
 {
-
     let args = get_arguments(input);
 
     if args.len() == 0 {return false;}
@@ -128,6 +127,28 @@ fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
     }
 
     return false;
+}
+
+
+fn benchmark_test()
+{
+    let mut strings : Vec<String> = Vec::new();
+
+    for index in 0..10000000
+    {
+        strings.push(format!("So this needs to be a very long string, so i will write on and on for a little bit {}",index));
+    } 
+
+    println!("Filled struct {}",strings.len());
+
+    for stri in strings.iter()
+    {
+        if stri.contains("9999999")
+        {
+            println!("found!!! {}",stri);
+            return;
+        }
+    }
 }
 
 fn main()
