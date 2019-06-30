@@ -138,12 +138,13 @@ fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
     return false;
 }
 
-fn get_ids_from_args(args : &[String]) -> Vec<inventory::id_type>
+fn get_ids_from_args(args : &[String]) -> Result<Vec<inventory::id_type>,Box<Error>>
 {
-    let tag_ids : Vec<inventory::id_type> = Vec::new();
+    let mut tag_ids : Vec<inventory::id_type> = Vec::new();
 
+    for tag_str in args { tag_ids.push(tag_str.parse()?); }
 
-    return tag_ids;
+    return Ok(tag_ids);
 }
 
 fn add_item(context : &mut gui::AppContext, args : &Vec<String>) -> Result<(), Box<dyn Error>>
@@ -153,8 +154,7 @@ fn add_item(context : &mut gui::AppContext, args : &Vec<String>) -> Result<(), B
     let con_id : inventory::id_type = args[1].parse()?;
     let ammount : inventory::id_type = args[3].parse()?;
 
-    let tag_ids : Vec<inventory::id_type>  = get_ids_from_args(&args[3..]);
-
+    let tag_ids : Vec<inventory::id_type>  = get_ids_from_args(&args[3..])?;
 
     return Ok(());
 }
