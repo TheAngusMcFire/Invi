@@ -73,6 +73,11 @@ impl AppContext
         self.gui_dirty = false;
         return dirty;
     }
+
+    pub fn get_terminal_ref(&mut self) -> &mut String
+    {
+        return &mut self.txt_terminal;
+    }
 }
 
 
@@ -109,7 +114,7 @@ fn draw_terminal<B>(f: &mut Frame<B>, area: Rect, msg : &str) where B: Backend,
  
     //TODO: perform line wrap
     Paragraph::new([Text::raw(msg)].iter())
-        .style(Style::default().fg(Color::Yellow))
+        .style(Style::default().fg(Color::Cyan))
         .block(Block::default().borders(Borders::ALL).title("Main Terminal"))
         .render(f, chunks[0]);
 }

@@ -11,6 +11,7 @@ use tui::Terminal;
 
 mod gui;
 mod inventory;
+mod error;
 use crate::gui::{Event};
 
 
@@ -113,20 +114,69 @@ fn get_arguments(in_str :&str) -> Vec<String>
 
 fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
 {
-    let args = get_arguments(input);
+    let mut args = get_arguments(input);
 
     if args.len() == 0 {return false;}
 
-    match args[0].as_ref()
+    let first_arg = args.remove(0);
+
+    match first_arg.as_ref()
     {
         ":q" => {return true;}
         ":ct" =>{context.clear_terminal();}
         ":0" => {context.layout = gui::InviLayout::Terminal}
         ":1" => {context.layout = gui::InviLayout::Search}
+        
+        ":help" | ":?" | "help" | "?" | "hlp" | ":hlp" => 
+            {print_help_msg(context);}
+
+        ":aitem" => add_item(context, &args).unwrap_or_default(),
+        
         _ => {context.write_to_terminal(&format!("No use for args {:?}\n",args));}
     }
 
     return false;
+}
+
+fn get_ids_from_args(args : &[String]) -> Vec<inventory::id_type>
+{
+    let tag_ids : Vec<inventory::id_type> = Vec::new();
+
+
+    return tag_ids;
+}
+
+fn add_item(context : &mut gui::AppContext, args : &Vec<String>) -> Result<(), Box<dyn Error>>
+{
+    if args.len() < 4 {return Err(Box::new(error::GenericError::new("Error invalid number of arguments".to_string())));}
+
+    let con_id : inventory::id_type = args[1].parse()?;
+    let ammount : inventory::id_type = args[3].parse()?;
+
+    let tag_ids : Vec<inventory::id_type>  = get_ids_from_args(&args[3..]);
+
+
+    return Ok(());
+}
+
+
+fn print_help_msg(context : &mut gui::AppContext)
+{
+    use std::fmt::Write;
+
+    let term = context.get_terminal_ref();
+
+    writeln!(term,"This is the Invi help:").unwrap();
+    writeln!(term,"Invi is a easy to used terminal based inventory manager").unwrap();
+    writeln!(term,"Commands:").unwrap();
+    writeln!(term,"    {:20}{}",":q","quit invi (save first)").unwrap();
+    writeln!(term,"    {:20}{}",":ct","clear the terminals").unwrap();
+    writeln!(term,"    {:20}{}","hlp | ? | help","prints this message").unwrap();
+    writeln!(term,"    {:20}{}",":atag","adds a new tag <name> <notes>").unwrap();
+    writeln!(term,"    {:20}{}",":acomp","adds a new compartment <name>").unwrap();
+    writeln!(term,"    {:20}{}",":acont","adds a new container <name> <compartment_id> <tag_id1> <tag_id2> ... <tag_idn>").unwrap();
+    writeln!(term,"    {:20}{}",":aitem","adds a new item <name> <container_id> <notes> <amount> <tag_id1> <tag_id2> ... <tag_idn>").unwrap();
+    writeln!(term,"    {:20}{}",":/<str>","used to search, items, containers, and compartments are listed also tag stuff").unwrap();
 }
 
 

@@ -6,7 +6,7 @@ use whoami;
 
 pub static FILE_NAME: &str = "base.json";
 
-type id_type = u32;
+pub type id_type = u32;
 
 
 #[derive(Serialize, Deserialize)]
@@ -130,6 +130,41 @@ impl Inventory
             }
         );
         self.cnt_item += 1;
+
+        return Ok(());
+    }
+
+    pub fn add_container(&mut self, name : &str, tags : Vec<id_type>) -> Result<(),String>
+    {
+        match self.check_tags_ids(&tags) {Err(e) => {return Err(format!("Check the tag ids, {} was not found!!!",e));} _=> {}}
+
+        self.containers.push
+        (
+            Container
+            {
+                name  : String::from(name),
+                id : self.cnt_container,
+                items : Vec::new(),
+                tags : Vec::from(tags)
+            }
+        );
+        self.cnt_container += 1;
+
+        return Ok(());
+    }
+
+    pub fn add_compartment(&mut self, name : &str) -> Result<(),String>
+    {
+        self.compartments.push
+        (
+            Compartment
+            {
+                name  : String::from(name),
+                id : self.cnt_compartment,
+                containers : Vec::new()
+            }
+        );
+        self.cnt_compartment += 1;
 
         return Ok(());
     }
