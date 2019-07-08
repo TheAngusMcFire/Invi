@@ -43,17 +43,13 @@ pub struct Container
 pub struct Item
 {
     name    : String,
-    notes   : String,
     id      : id_type,
-    amount  : id_type,
-    tags    : Vec<id_type>
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Tag
 {
     name  : String,
-    notes : String,
     id    : id_type
 }
 
@@ -100,43 +96,49 @@ impl Inventory
         return Ok(());
     }
 
-    pub fn add_tag(&mut self, name : &str, notes : &str)
+    pub fn add_tag(&mut self, name : &str)
     {
         self.tags.push
         (
             Tag
             {
                 name  : String::from(name),
-                notes : String::from(notes),
                 id : self.cnt_tag
             }
         );
         self.cnt_tag += 1;
     }
 
-    pub fn add_item(&mut self, name : &str, notes : &str, amount : id_type, tags : Vec<id_type>) -> Result<(),String>
+    pub fn add_item(&mut self, name : &str, con_id : id_type) -> Result<(),String>
     {
-        match self.check_tags_ids(&tags) {Err(e) => {return Err(format!("Check the tag ids, {} was not found!!!",e));} _=> {}}
+        if let None = self.containers.get(con_id as usize)
+        {
+            return Err(format!("The container with the id: {} was not found!!!", con_id));
+        }
 
         self.items.push
         (
             Item
             {
                 name  : String::from(name),
-                notes : String::from(notes),
                 id : self.cnt_item,
-                amount : amount,
-                tags : Vec::from(tags)
             }
         );
+
+        self.containers[con_id as usize].items.push(self.cnt_item);
         self.cnt_item += 1;
 
         return Ok(());
     }
 
-    pub fn add_container(&mut self, name : &str, tags : Vec<id_type>) -> Result<(),String>
+    pub fn add_container(&mut self, name : &str, com_id : id_type, tags : Vec<id_type>) -> Result<(),String>
     {
         match self.check_tags_ids(&tags) {Err(e) => {return Err(format!("Check the tag ids, {} was not found!!!",e));} _=> {}}
+
+        if let None = self.compartments.get(com_id as usize)
+        {
+            return Err(format!("The compartment with the id: {} was not found!!!", com_id));
+        }
 
         self.containers.push
         (
@@ -148,6 +150,8 @@ impl Inventory
                 tags : Vec::from(tags)
             }
         );
+
+        self.compartments[com_id as usize].containers.push(self.cnt_container);
         self.cnt_container += 1;
 
         return Ok(());
@@ -172,10 +176,10 @@ impl Inventory
 
 
 
-pub fn save_inventory(inventory : &Inventory, file_name : String) -> Result<(), Box<dyn Error>> 
+pub fn save_inventory(inventory : &Inventory) -> Result<(), Box<dyn Error>> 
 {
     let serialized = serde_json::to_string(&inventory)?;
-    fs::write(file_name, serialized)?;
+    fs::write(get_file_location(FILE_NAME), serialized)?;
     return Ok(());
 }
 
@@ -184,13 +188,6 @@ pub fn get_file_location(file_name : &str) -> String
     let user_name = &whoami::username();
     let file_path = format!("/home/{}/.config/invi/{}",user_name,file_name);
     return file_path;
-}
-
-pub fn save_inventory_to_home()  -> Result<(), Box<dyn Error>> 
-{
-
-
-    return Ok(());
 }
 
 pub fn load_inventory_from_home() -> Result<Inventory, Box<dyn Error>> 

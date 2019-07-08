@@ -18,18 +18,19 @@ pub enum InviLayout
 //eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 pub struct AppContext
 {
-    pub txt_input : String,
+    pub txt_input  : String,
     pub cursor_pos : u16,
-    pub layout : InviLayout,
-    txt_terminal : String,
-    pub inventory : Inventory,
-    size_term : Rect,
-    gui_dirty    : bool,
+    pub layout     : InviLayout,
+    txt_terminal   : String,
+    pub inventory  : Inventory,
+    pub invi_dirty : bool,
+    size_term      : Rect,
+    gui_dirty      : bool,
 }
 
 impl AppContext
 {
-    pub fn new(file_name : String) -> Result<(AppContext), Box<dyn Error>> 
+    pub fn new() -> Result<(AppContext), Box<dyn Error>> 
     {
         let context = AppContext
         {
@@ -38,6 +39,7 @@ impl AppContext
             layout       : InviLayout::Terminal,
             txt_terminal : String::new(),
             inventory    : load_inventory_from_home()?,
+            invi_dirty   : false,
             size_term    : Rect::new(0,0,0,0),
             gui_dirty    : true, 
         };

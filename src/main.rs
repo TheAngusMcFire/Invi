@@ -1,5 +1,6 @@
-use std::io::{self, Write};
+use std::io::{self};
 use std::error::Error;
+use std::fmt::Write;
 
 use termion::event::Key;
 use tui::backend::TermionBackend;
@@ -17,13 +18,14 @@ use crate::gui::{Event};
 
 fn not_main() -> Result<(), Box<dyn Error>> 
 {
-    let mut context = match gui::AppContext::new("test.json".to_string())
+    let greeting_string = &inventory::get_file_location(inventory::FILE_NAME);
+    let mut context = match gui::AppContext::new()
     {
         Ok(context) => context,
         Err(err) => 
         {
             inventory::new_inventory("tmp.json".to_string()).unwrap();
-            let mut con = gui::AppContext::new("tmp.json".to_string()).unwrap();
+            let mut con = gui::AppContext::new().unwrap();
             con.write_to_terminal(&format!("Error while creating context:\n    {}\n",&err));
             con.write_to_terminal(&format!("A temporary database will be used:(tmp.json)\n"));
             con
@@ -31,7 +33,6 @@ fn not_main() -> Result<(), Box<dyn Error>>
     };
 
 
-    let greeting_string = &inventory::get_file_location(inventory::FILE_NAME);
     context.write_to_terminal(&format!("Using default file: {}\n",greeting_string));
 
 
@@ -49,6 +50,7 @@ fn not_main() -> Result<(), Box<dyn Error>>
         context.check_if_changed(&terminal);
         gui::draw(&mut terminal, &mut context);
         let text_field_pos = terminal.size().unwrap().height - 1;
+        use std::io::Write;
         write!(terminal.backend_mut(),"{}", Goto(2 + context.cursor_pos as u16, text_field_pos)).unwrap();
         io::stdout().flush().ok();
 
@@ -59,7 +61,7 @@ fn not_main() -> Result<(), Box<dyn Error>>
                 Key::Char('\n') => 
                 {
                     let input = gui::get_input_str_and_clear(&mut context);
-                    
+
                     if dispatch_input(&input, &mut context){break;}
                 }
                 other => gui::handle_input_key(other, &mut context)
@@ -81,24 +83,24 @@ fn get_arguments(in_str :&str) -> Vec<String>
     {
         match ch
         {
-            ('\"') => 
+            '\"' => 
             {
                 if quote_start
                 {
-                    args.push(tmp_string.clone()); 
+                    args.push(tmp_string.clone());
                     tmp_string.clear();
                     quote_start = false;
                 }
                 else{ quote_start = true; }
             }
 
-            (' ') => 
+            ' ' =>
             {
-                if quote_start {tmp_string.push(ch)} 
-                else 
+                if quote_start {tmp_string.push(ch)}
+                else
                 {
-                    if tmp_string.len() == 0 {continue;} 
-                    args.push(tmp_string.clone()); 
+                    if tmp_string.len() == 0 {continue;}
+                    args.push(tmp_string.clone());
                     tmp_string.clear();
                 }
             }
@@ -122,21 +124,59 @@ fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
 
     match first_arg.as_ref()
     {
-        ":q" => {return true;}
+        ":q"  => 
+        {
+            if context.invi_dirty
+            {
+                writeln!(context.get_terminal_ref(),"There are unwritten changes in the inventory, write the changes(:w) or force quit(:q!) ").unwrap();
+                return false;
+            }
+            return true;
+        }
+        ":q!"  => { return true; }
         ":ct" =>{context.clear_terminal();}
-        ":0" => {context.layout = gui::InviLayout::Terminal}
-        ":1" => {context.layout = gui::InviLayout::Search}
-        
+        ":0"  => {context.layout = gui::InviLayout::Terminal}
+        ":1"  => {context.layout = gui::InviLayout::Search}
+        ":w" => 
+        {
+            if let Err(e) = write_back_file(context)
+            {writeln!(context.get_terminal_ref(),"Error while saving file: {}",e).unwrap();}
+        }
         ":help" | ":?" | "help" | "?" | "hlp" | ":hlp" => 
             {print_help_msg(context);}
 
-        ":aitem" => add_item(context, &args).unwrap_or_default(),
-        
+        ":aitem" => if let Err(e) = add_item(context, &args)
+            {writeln!(context.get_terminal_ref(),"{}",e).unwrap();},
+
+        ":atag"  => if let Err(e) = add_tag (context, &args)
+            {writeln!(context.get_terminal_ref(),"{}",e).unwrap();},
+
         _ => {context.write_to_terminal(&format!("No use for args {:?}\n",args));}
     }
 
     return false;
 }
+
+fn write_back_file(context : &mut gui::AppContext) -> Result<(), Box<dyn Error>>
+{
+    inventory::save_inventory(&context.inventory)?;
+    context.invi_dirty = false;
+    return Ok(());
+}
+
+fn add_tag(context : &mut gui::AppContext, args : &Vec<String>) -> Result<(), Box<dyn Error>>
+{
+    if args.len() < 1
+        {return Err(Box::new(error::GenericError::new("Error invalid number of arguments".to_string())));}
+
+    let name = &args[0];
+
+    context.inventory.add_tag(name);
+    context.invi_dirty = true;
+
+    return Ok(());
+}
+
 
 fn get_ids_from_args(args : &[String]) -> Result<Vec<inventory::id_type>,Box<Error>>
 {
@@ -152,18 +192,14 @@ fn add_item(context : &mut gui::AppContext, args : &Vec<String>) -> Result<(), B
     if args.len() < 4 {return Err(Box::new(error::GenericError::new("Error invalid number of arguments".to_string())));}
 
     let con_id : inventory::id_type = args[1].parse()?;
-    let ammount : inventory::id_type = args[3].parse()?;
 
-    let tag_ids : Vec<inventory::id_type>  = get_ids_from_args(&args[3..])?;
-
+    //todo
     return Ok(());
 }
 
 
 fn print_help_msg(context : &mut gui::AppContext)
 {
-    use std::fmt::Write;
-
     let term = context.get_terminal_ref();
 
     writeln!(term,"This is the Invi help:").unwrap();
@@ -172,10 +208,10 @@ fn print_help_msg(context : &mut gui::AppContext)
     writeln!(term,"    {:20}{}",":q","quit invi (save first)").unwrap();
     writeln!(term,"    {:20}{}",":ct","clear the terminals").unwrap();
     writeln!(term,"    {:20}{}","hlp | ? | help","prints this message").unwrap();
-    writeln!(term,"    {:20}{}",":atag","adds a new tag <name> <notes>").unwrap();
+    writeln!(term,"    {:20}{}",":atag","adds a new tag <name>").unwrap();
     writeln!(term,"    {:20}{}",":acomp","adds a new compartment <name>").unwrap();
     writeln!(term,"    {:20}{}",":acont","adds a new container <name> <compartment_id> <tag_id1> <tag_id2> ... <tag_idn>").unwrap();
-    writeln!(term,"    {:20}{}",":aitem","adds a new item <name> <container_id> <notes> <amount> <tag_id1> <tag_id2> ... <tag_idn>").unwrap();
+    writeln!(term,"    {:20}{}",":aitem","adds a new item <name> <container_id>").unwrap();
     writeln!(term,"    {:20}{}",":/<str>","used to search, items, containers, and compartments are listed also tag stuff").unwrap();
 }
 
