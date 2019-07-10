@@ -15,6 +15,9 @@ mod inventory;
 mod error;
 use crate::gui::{Event};
 
+//to attach to the process use :
+//echo 0 > /proc/sys/kernel/yama/ptrace_scope
+
 
 fn not_main() -> Result<(), Box<dyn Error>> 
 {
@@ -136,7 +139,7 @@ fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
         ":q!"  => { return true; }
         ":ct" =>{context.clear_terminal();}
         ":0"  => {context.layout = gui::InviLayout::Terminal}
-        ":1"  => {context.layout = gui::InviLayout::Search}
+        ":1"  => {context.layout = gui::InviLayout::Overview}
         ":w" => 
         {
             if let Err(e) = write_back_file(context)

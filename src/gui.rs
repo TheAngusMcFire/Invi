@@ -4,28 +4,31 @@ use std::error::Error;
 
 use tui::{Frame, Terminal};
 use tui::backend::Backend;
-use tui::layout::{Constraint, Direction, Layout, Rect};
-use tui::style::{Color, Style};
-use tui::widgets::{ Block, Borders, Paragraph, Text, Widget};
+use tui::layout::{Constraint, Direction, Layout, Rect, Corner};
+use tui::style::{Color, Modifier, Style};
+use tui::widgets::{ Block, Borders, Paragraph, Text, Widget, SelectableList,List};
 use crate::inventory::{Inventory,load_inventory,load_inventory_from_home};
 
 
 pub enum InviLayout
 {
     Terminal,
-    Search
+    Search,
+    Overview
 }
+
 //eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 pub struct AppContext
 {
     pub txt_input  : String,
     pub cursor_pos : u16,
     pub layout     : InviLayout,
-    txt_terminal   : String,
-    pub inventory  : Inventory,
-    pub invi_dirty : bool,
     size_term      : Rect,
     gui_dirty      : bool,
+    pub inventory  : Inventory,
+    pub invi_dirty : bool,
+    
+    term_txt   : String,
 }
 
 impl AppContext
@@ -36,8 +39,8 @@ impl AppContext
         {
             txt_input    : String::new(),
             cursor_pos   : 0,
-            layout       : InviLayout::Terminal,
-            txt_terminal : String::new(),
+            layout       : InviLayout::Overview,
+            term_txt : String::new(),
             inventory    : load_inventory_from_home()?,
             invi_dirty   : false,
             size_term    : Rect::new(0,0,0,0),
@@ -49,13 +52,13 @@ impl AppContext
 
     pub fn clear_terminal(&mut self)
     {
-        self.txt_terminal.clear();
+        self.term_txt.clear();
         self.gui_dirty = true;
     }
     
     pub fn write_to_terminal(&mut self, msg : &str)
     {
-        self.txt_terminal.push_str(msg);
+        self.term_txt.push_str(msg);
         self.gui_dirty = true;
     }
 
@@ -78,7 +81,7 @@ impl AppContext
 
     pub fn get_terminal_ref(&mut self) -> &mut String
     {
-        return &mut self.txt_terminal;
+        return &mut self.term_txt;
     }
 }
 
@@ -96,8 +99,9 @@ pub fn draw<B: Backend>(terminal: &mut Terminal<B>, context: &mut AppContext)
 
         match context.layout
         {
-            InviLayout::Terminal => {draw_terminal (&mut f, chunks[0], &context.txt_terminal);}
+            InviLayout::Terminal => {draw_terminal (&mut f, chunks[0], &context.term_txt);}
             InviLayout::Search => {draw_first_tab (&mut f, chunks[0]);}
+            InviLayout::Overview => {draw_overview (&mut f, chunks[0],context);}
         }
        
        Paragraph::new([Text::raw(&context.txt_input)].iter())
@@ -105,6 +109,94 @@ pub fn draw<B: Backend>(terminal: &mut Terminal<B>, context: &mut AppContext)
                 .block(Block::default().borders(Borders::ALL).title("Input"))
                 .render(&mut f, chunks[1]);
     }).unwrap();
+}
+
+fn draw_overview<B>(f: &mut Frame<B>, area: Rect, context : &AppContext) where B: Backend,
+{
+    let some  = vec!["test","test1"];
+
+    let style = Style::default().fg(Color::White).bg(Color::Reset);
+
+    let main_chunks = Layout::default()
+    .direction(Direction::Vertical)
+    .constraints([Constraint::Percentage(70), Constraint::Percentage(30)].as_ref())
+    .split(area);
+
+
+    let chunks = Layout::default()
+    .direction(Direction::Horizontal)
+    .constraints([Constraint::Percentage(25), Constraint::Percentage(25),Constraint::Percentage(25),Constraint::Percentage(25)].as_ref())
+    .split(main_chunks[0]);
+
+    Paragraph::new([Text::raw(&context.term_txt)].iter())
+        .style(Style::default().fg(Color::Cyan))
+        .block(Block::default().borders(Borders::ALL).title(" Main Terminal "))
+        .render(f, main_chunks[1]);
+
+    // SelectableList::default()
+    // .block(Block::default().borders(Borders::ALL).title("List"))
+    // .items(&some)
+    // .select(Option::None)
+    // .style(style)
+    // .highlight_style(style.fg(Color::LightGreen).modifier(Modifier::BOLD))
+    // .highlight_symbol(">")
+    // .render(f, chunks[0]);
+
+    let conts = context.inventory.containers.iter().map(|(value)| 
+    {
+        Text::styled
+        (
+            format!("{:04} : {}", value.id, value.name),
+            style
+        )
+    });
+
+    let comp = context.inventory.compartments.iter().map(|(value)| 
+    {
+        Text::styled
+        (
+            format!("{:04} : {}", value.id, value.name),
+            style
+        )
+    });
+
+    let items = context.inventory.items.iter().map(|(value)| 
+    {
+        Text::styled
+        (
+            format!("{:04} : {}", value.id, value.name),
+            style
+        )
+    });
+
+    let tags = context.inventory.tags.iter().map(|(value)| 
+    {
+        Text::styled
+        (
+            format!("{:4} : {}", value.id, value.name),
+            style
+        )
+    });
+
+    List::new(conts)
+        .block(Block::default().borders(Borders::ALL).title(" Compartmets "))
+        .start_corner(Corner::BottomLeft)
+        .render(f, chunks[0]);
+
+    List::new(comp)
+        .block(Block::default().borders(Borders::ALL).title(" Containers "))
+        .start_corner(Corner::BottomLeft)
+        .render(f, chunks[1]);
+
+    List::new(items)
+        .block(Block::default().borders(Borders::ALL).title(" Items "))
+        .start_corner(Corner::BottomLeft)
+        .render(f, chunks[2]);
+
+    List::new(tags)
+        .block(Block::default().borders(Borders::ALL).title(" Tags "))
+        .start_corner(Corner::BottomLeft)
+        .render(f, chunks[3]);
 }
 
 fn draw_terminal<B>(f: &mut Frame<B>, area: Rect, msg : &str) where B: Backend,

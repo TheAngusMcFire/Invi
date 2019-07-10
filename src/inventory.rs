@@ -12,10 +12,10 @@ pub type id_type = u32;
 #[derive(Serialize, Deserialize)]
 pub struct Inventory
 {
-    compartments    : Vec<Compartment>,
-    containers      : Vec<Container>,
-    tags            : Vec<Tag>,
-    items           : Vec<Item>,
+    pub compartments    : Vec<Compartment>,
+    pub containers      : Vec<Container>,
+    pub tags            : Vec<Tag>,
+    pub items           : Vec<Item>,
     cnt_compartment : id_type,
     cnt_container   : id_type,
     cnt_item        : id_type,
@@ -25,16 +25,16 @@ pub struct Inventory
 #[derive(Serialize, Deserialize)]
 pub struct Compartment
 {
-    name       : String,
-    id         : id_type,
+    pub name       : String,
+    pub id         : id_type,
     containers : Vec<id_type>
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Container
 {
-    name  : String,
-    id    : id_type,
+    pub name  : String,
+    pub id    : id_type,
     items : Vec<id_type>,
     tags  : Vec<id_type>
 }
@@ -42,15 +42,15 @@ pub struct Container
 #[derive(Serialize, Deserialize)]
 pub struct Item
 {
-    name    : String,
-    id      : id_type,
+    pub name    : String,
+    pub id      : id_type,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Tag
 {
-    name  : String,
-    id    : id_type
+    pub name  : String,
+    pub id    : id_type
 }
 
 //trait IdObject{fn get_id(&self) -> u32; }
