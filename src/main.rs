@@ -176,6 +176,8 @@ fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
     return false;
 }
 
+//todo read the is in hex
+
 fn write_back_file(context : &mut gui::AppContext) -> Result<(), Box<dyn Error>>
 {
     inventory::save_inventory(&context.inventory)?;
