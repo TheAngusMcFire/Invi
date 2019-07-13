@@ -5,9 +5,9 @@ use std::error::Error;
 use tui::{Frame, Terminal};
 use tui::backend::Backend;
 use tui::layout::{Constraint, Direction, Layout, Rect, Corner};
-use tui::style::{Color, Modifier, Style};
-use tui::widgets::{ Block, Borders, Paragraph, Text, Widget, SelectableList,List};
-use crate::inventory::{Inventory,load_inventory,load_inventory_from_home};
+use tui::style::{Color, Style};
+use tui::widgets::{ Block, Borders, Paragraph, Text, Widget,List};
+use crate::inventory::{Inventory,load_inventory_from_home};
 
 
 pub enum InviLayout
@@ -24,9 +24,11 @@ pub struct AppContext
     pub cursor_pos : u16,
     pub layout     : InviLayout,
     size_term      : Rect,
-    gui_dirty      : bool,
+    pub gui_dirty      : bool,
     pub inventory  : Inventory,
     pub invi_dirty : bool,
+    pub scroll_back: usize,
+    pub scroll_items : Vec<String>,
     
     term_txt   : String,
 }
@@ -35,16 +37,22 @@ impl AppContext
 {
     pub fn new() -> Result<(AppContext), Box<dyn Error>> 
     {
+
+        let sc_items = vec![":acont ".to_string(),":acomp ".to_string(), ":aitem ".to_string(), ":atag ".to_string()];
+        let sc_items_len = sc_items.len();
         let context = AppContext
         {
             txt_input    : String::new(),
             cursor_pos   : 0,
             layout       : InviLayout::Overview,
-            term_txt : String::new(),
             inventory    : load_inventory_from_home()?,
             invi_dirty   : false,
             size_term    : Rect::new(0,0,0,0),
             gui_dirty    : true, 
+            scroll_items : sc_items,
+            scroll_back  : sc_items_len,
+
+            term_txt : String::new(),
         };
 
         return Ok(context);
@@ -113,8 +121,6 @@ pub fn draw<B: Backend>(terminal: &mut Terminal<B>, context: &mut AppContext)
 
 fn draw_overview<B>(f: &mut Frame<B>, area: Rect, context : &AppContext) where B: Backend,
 {
-    let some  = vec!["test","test1"];
-
     let style = Style::default().fg(Color::White).bg(Color::Reset);
 
     let main_chunks = Layout::default()
@@ -142,7 +148,7 @@ fn draw_overview<B>(f: &mut Frame<B>, area: Rect, context : &AppContext) where B
     // .highlight_symbol(">")
     // .render(f, chunks[0]);
 
-    let conts = context.inventory.containers.iter().map(|(value)| 
+    let conts = context.inventory.containers.iter().map(|value| 
     {
         Text::styled
         (
@@ -151,7 +157,7 @@ fn draw_overview<B>(f: &mut Frame<B>, area: Rect, context : &AppContext) where B
         )
     });
 
-    let comp = context.inventory.compartments.iter().map(|(value)| 
+    let comp = context.inventory.compartments.iter().map(|value| 
     {
         Text::styled
         (
@@ -160,7 +166,7 @@ fn draw_overview<B>(f: &mut Frame<B>, area: Rect, context : &AppContext) where B
         )
     });
 
-    let items = context.inventory.items.iter().map(|(value)| 
+    let items = context.inventory.items.iter().map(|value| 
     {
         Text::styled
         (
@@ -169,7 +175,7 @@ fn draw_overview<B>(f: &mut Frame<B>, area: Rect, context : &AppContext) where B
         )
     });
 
-    let tags = context.inventory.tags.iter().map(|(value)| 
+    let tags = context.inventory.tags.iter().map(|value| 
     {
         Text::styled
         (
@@ -178,24 +184,24 @@ fn draw_overview<B>(f: &mut Frame<B>, area: Rect, context : &AppContext) where B
         )
     });
 
-    List::new(conts)
+    List::new(comp)
         .block(Block::default().borders(Borders::ALL).title(" Compartmets "))
-        .start_corner(Corner::BottomLeft)
+        .start_corner(Corner::TopRight)
         .render(f, chunks[0]);
 
-    List::new(comp)
+    List::new(conts)
         .block(Block::default().borders(Borders::ALL).title(" Containers "))
-        .start_corner(Corner::BottomLeft)
+        .start_corner(Corner::TopRight)
         .render(f, chunks[1]);
 
     List::new(items)
         .block(Block::default().borders(Borders::ALL).title(" Items "))
-        .start_corner(Corner::BottomLeft)
+        .start_corner(Corner::TopRight)
         .render(f, chunks[2]);
 
     List::new(tags)
         .block(Block::default().borders(Borders::ALL).title(" Tags "))
-        .start_corner(Corner::BottomLeft)
+        .start_corner(Corner::TopRight)
         .render(f, chunks[3]);
 }
 
@@ -239,6 +245,7 @@ pub fn get_input_str_and_clear(gui_context : &mut AppContext) -> String
     gui_context.txt_input.clear();
     gui_context.cursor_pos = 0;
     gui_context.gui_dirty = true;
+    gui_context.scroll_back = gui_context.scroll_items.len();
     return tmp;
 }
 
@@ -261,7 +268,7 @@ fn get_len_any(in_str : & String) -> usize
 {
     let mut cnt : usize = 0; 
 
-    for c in in_str.chars()
+    for _c in in_str.chars()
         {cnt += 1;}
 
     return cnt;
@@ -279,51 +286,73 @@ fn insert_any(in_str : &mut String, index : usize, ch : char)
     in_str.insert(target, ch);
 }
 
-pub fn handle_input_key (key : Key, gui_context : &mut AppContext)
+pub fn set_txt_input(context : &mut AppContext, msg : String)
+{
+    context.txt_input = msg;
+    context.cursor_pos = get_len_any(&context.txt_input) as u16;
+    context.gui_dirty = true;
+}
+
+pub fn handle_input_key (key : Key, context : &mut AppContext)
 {
     match key 
     {
         Key::Char(c) =>
         {
-            gui_context.gui_dirty = true;
-            insert_any(&mut gui_context.txt_input, gui_context.cursor_pos as usize, c);
-            gui_context.cursor_pos += 1;
+            context.gui_dirty = true;
+            insert_any(&mut context.txt_input, context.cursor_pos as usize, c);
+            context.cursor_pos += 1;
         }
 
         Key::Left =>
         {
-            gui_context.cursor_pos = if gui_context.cursor_pos > 0 {gui_context.cursor_pos - 1} else {0}
+            context.cursor_pos = if context.cursor_pos > 0 {context.cursor_pos - 1} else {0}
         }
 
         Key::Right =>
         {
-            gui_context.cursor_pos = if gui_context.cursor_pos < get_len_any(&gui_context.txt_input) as u16
-            {gui_context.cursor_pos + 1} else {get_len_any(&gui_context.txt_input) as u16}
+            context.cursor_pos = if context.cursor_pos < get_len_any(&context.txt_input) as u16
+            {context.cursor_pos + 1} else {get_len_any(&context.txt_input) as u16}
         }
 
         Key::Home => 
         {
-            gui_context.cursor_pos = 0;
+            context.cursor_pos = 0;
         }
         
         Key::End => 
         {
-            gui_context.cursor_pos = get_len_any(&gui_context.txt_input) as u16;
+            context.cursor_pos = get_len_any(&context.txt_input) as u16;
         }
 
         Key::Esc => 
         {
-            gui_context.gui_dirty = true;
-            gui_context.txt_input.clear();gui_context.cursor_pos = 0;
+            context.gui_dirty = true;
+            context.txt_input.clear();context.cursor_pos = 0;
         }
 
         Key::Backspace => 
         {
-            gui_context.gui_dirty = true;
-            if gui_context.cursor_pos > 0 {remote_any(&mut gui_context.txt_input,gui_context.cursor_pos as usize -1);}
-            gui_context.cursor_pos = if gui_context.cursor_pos < get_len_any(&gui_context.txt_input) as u16 
-            {gui_context.cursor_pos - 1} else {get_len_any(&gui_context.txt_input) as u16};
+            context.gui_dirty = true;
+            if context.cursor_pos > 0 {remote_any(&mut context.txt_input,context.cursor_pos as usize -1);}
+            context.cursor_pos = if context.cursor_pos < get_len_any(&context.txt_input) as u16 
+            {context.cursor_pos - 1} else {get_len_any(&context.txt_input) as u16};
         }
+
+        Key::Up => 
+        {
+            context.scroll_back = if context.scroll_back + 1  < context.scroll_items.len() {context.scroll_back + 1} else {0};
+            let scroll_item = context.scroll_items[ context.scroll_back].clone();
+            set_txt_input(context, scroll_item);
+        }
+
+        Key::Down => 
+        {
+            context.scroll_back = if context.scroll_back < 1 {context.scroll_items.len() - 1} else {context.scroll_back - 1};
+            let scroll_item = context.scroll_items[ context.scroll_back].clone();
+            set_txt_input(context, scroll_item);
+        }
+
         _ => {}
     }
 }

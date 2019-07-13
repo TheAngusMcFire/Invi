@@ -6,7 +6,7 @@ use whoami;
 
 pub static FILE_NAME: &str = "base.json";
 
-pub type id_type = u32;
+pub type IdType = u32;
 
 
 #[derive(Serialize, Deserialize)]
@@ -16,48 +16,49 @@ pub struct Inventory
     pub containers      : Vec<Container>,
     pub tags            : Vec<Tag>,
     pub items           : Vec<Item>,
-    cnt_compartment : id_type,
-    cnt_container   : id_type,
-    cnt_item        : id_type,
-    cnt_tag         : id_type
+    cnt_compartment : IdType,
+    cnt_container   : IdType,
+    cnt_item        : IdType,
+    cnt_tag         : IdType
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Compartment
 {
     pub name       : String,
-    pub id         : id_type,
-    containers : Vec<id_type>
+    pub id         : IdType,
+    containers : Vec<IdType>
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Container
 {
     pub name  : String,
-    pub id    : id_type,
-    items : Vec<id_type>,
-    tags  : Vec<id_type>
+    pub id    : IdType,
+    id_comp   : IdType,
+    items : Vec<IdType>,
+    tags  : Vec<IdType>
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Item
 {
     pub name    : String,
-    pub id      : id_type,
+    pub id      : IdType,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Tag
 {
     pub name  : String,
-    pub id    : id_type
+    pub id    : IdType
 }
 
 //trait IdObject{fn get_id(&self) -> u32; }
-//impl IdObject for Tag        { fn get_id(&self) -> id_type {return self.id;} }
-//impl IdObject for Item       { fn get_id(&self) -> id_type {return self.id;} }
-//impl IdObject for Container  { fn get_id(&self) -> id_type {return self.id;} }
-//impl IdObject for Compartment{ fn get_id(&self) -> id_type {return self.id;} }
+//impl IdObject for Tag        { fn get_id(&self) -> IdType {return self.id;} }
+//impl IdObject for Item       { fn get_id(&self) -> IdType {return self.id;} }
+//impl IdObject for Container  { fn get_id(&self) -> IdType {return self.id;} }
+//impl IdObject for Compartment{ fn get_id(&self) -> IdType {return self.id;} }
 
 pub struct SearchResult <'a>
 {
@@ -80,7 +81,7 @@ pub fn search<'a>(key_word : &str, inv :&'a Inventory) -> SearchResult <'a>
 
 impl Inventory
 {
-    pub fn check_tags_ids(&self, ids : &Vec<id_type>) -> Result<(),String>
+    pub fn check_tags_ids(&self, ids : &Vec<IdType>) -> Result<(),String>
     {
         'main_loop : for id in ids
         {
@@ -109,9 +110,10 @@ impl Inventory
         self.cnt_tag += 1;
     }
 
-    pub fn add_item(&mut self, name : &str, con_id : id_type) -> Result<(),String>
+    pub fn add_item(&mut self, name : &str, con_id : IdType) -> Result<(),String>
     {
-        if let None = self.containers.get(con_id as usize)
+        let cont_index = con_id as usize;
+        if let None = self.containers.get(cont_index)
         {
             return Err(format!("The container with the id: {} was not found!!!", con_id));
         }
@@ -125,39 +127,43 @@ impl Inventory
             }
         );
 
-        self.containers[con_id as usize].items.push(self.cnt_item);
+        self.containers[cont_index].items.push(self.cnt_item);
         self.cnt_item += 1;
 
         return Ok(());
     }
 
-    pub fn add_container(&mut self, name : &str, com_id : id_type, tags : Vec<id_type>) -> Result<(),String>
+    pub fn add_container(&mut self, name : &str, com_id : IdType, tags : Vec<IdType>) -> Result<(),String>
     {
+        let comp_index = com_id as usize;
+
         match self.check_tags_ids(&tags) {Err(e) => {return Err(format!("Check the tag ids, {} was not found!!!",e));} _=> {}}
 
-        if let None = self.compartments.get(com_id as usize)
+        if let None = self.compartments.get(comp_index)
         {
             return Err(format!("The compartment with the id: {} was not found!!!", com_id));
         }
+
+        let cont_id = self.compartments[comp_index].containers.len() as IdType;
 
         self.containers.push
         (
             Container
             {
                 name  : String::from(name),
-                id : self.cnt_container,
+                id : cont_id,
+                id_comp : com_id,
                 items : Vec::new(),
                 tags : Vec::from(tags)
             }
         );
 
-        self.compartments[com_id as usize].containers.push(self.cnt_container);
-        self.cnt_container += 1;
+        self.compartments[comp_index].containers.push(cont_id);
 
         return Ok(());
     }
 
-    pub fn add_compartment(&mut self, name : &str) -> Result<(),String>
+    pub fn add_compartment(&mut self, name : &str)
     {
         self.compartments.push
         (
@@ -169,8 +175,6 @@ impl Inventory
             }
         );
         self.cnt_compartment += 1;
-
-        return Ok(());
     }
 }
 
@@ -225,10 +229,10 @@ pub fn new_inventory(file_name : String) -> Result<(), Box<dyn Error>>
         containers      : Vec::new(),
         tags            : Vec::new(),
         items           : Vec::new(),
-        cnt_compartment : 1 as id_type,
-        cnt_container   : 1 as id_type,
-        cnt_item        : 1 as id_type,
-        cnt_tag         : 0 as id_type,
+        cnt_compartment : 0 as IdType,
+        cnt_container   : 0 as IdType,
+        cnt_item        : 0 as IdType,
+        cnt_tag         : 0 as IdType,
     };
 
     let serialized = serde_json::to_string(&new_inventory)?;

@@ -1,4 +1,3 @@
-use std::env;
 use std::error;
 use std::fmt;
 
@@ -31,7 +30,7 @@ impl error::Error for GenericError
         "this is a generic error"
     }
 
-    fn cause(&self) -> Option<&error::Error> 
+    fn cause(&self) -> Option<&dyn error::Error> 
     {
         None
     }

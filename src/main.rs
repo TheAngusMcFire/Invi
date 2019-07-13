@@ -67,6 +67,7 @@ fn not_main() -> Result<(), Box<dyn Error>>
 
                     if dispatch_input(&input, &mut context){break;}
                 }
+
                 other => gui::handle_input_key(other, &mut context)
             },
             _ => {}
@@ -137,9 +138,16 @@ fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
             return true;
         }
         ":q!"  => { return true; }
-        ":ct" =>{context.clear_terminal();}
+        ":ct" | "cls" =>{context.clear_terminal();}
         ":0"  => {context.layout = gui::InviLayout::Terminal}
         ":1"  => {context.layout = gui::InviLayout::Overview}
+        ":wq" => 
+        {
+            if let Err(e) = write_back_file(context)
+                { writeln!(context.get_terminal_ref(),"Error while saving file: {}",e).unwrap(); }
+            else 
+                { return true; }
+        }
         ":w" => 
         {
             if let Err(e) = write_back_file(context)
@@ -154,7 +162,13 @@ fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
         ":atag"  => if let Err(e) = add_tag (context, &args)
             {writeln!(context.get_terminal_ref(),"{}",e).unwrap();},
 
-        _ => {context.write_to_terminal(&format!("No use for args {:?}\n",args));}
+        ":acomp"  => if let Err(e) = add_compartment(context, &args)
+            {writeln!(context.get_terminal_ref(),"{}",e).unwrap();},
+        
+        ":acont"  => if let Err(e) = add_container(context, &args)
+            {writeln!(context.get_terminal_ref(),"{}",e).unwrap();},
+
+        _ => {context.write_to_terminal(&format!("No use for \"{}\" and args: {:?}\n",first_arg, args));}
     }
 
     return false;
@@ -167,9 +181,38 @@ fn write_back_file(context : &mut gui::AppContext) -> Result<(), Box<dyn Error>>
     return Ok(());
 }
 
+
+fn add_container(context : &mut gui::AppContext, args : &Vec<String>) -> Result<(), Box<dyn Error>>
+{
+    if args.len() < 2
+        {return Err(Box::new(error::GenericError::new("Error invalid number of arguments".to_string())));}
+
+    let name = &args[0];    
+    let com_id : inventory::IdType = args[1].parse()?;
+    let tags = get_ids_from_args(&args[2..])?; 
+
+    context.inventory.add_container(name,  com_id, tags)?;
+    context.invi_dirty = true;
+
+    return Ok(());
+}
+
+fn add_compartment(context : &mut gui::AppContext, args : &Vec<String>) -> Result<(), Box<dyn Error>>
+{
+    if args.len() != 1
+        {return Err(Box::new(error::GenericError::new("Error invalid number of arguments".to_string())));}
+
+    let name = &args[0];
+
+    context.inventory.add_compartment(name);
+    context.invi_dirty = true;
+
+    return Ok(());
+}
+
 fn add_tag(context : &mut gui::AppContext, args : &Vec<String>) -> Result<(), Box<dyn Error>>
 {
-    if args.len() < 1
+    if args.len() != 1
         {return Err(Box::new(error::GenericError::new("Error invalid number of arguments".to_string())));}
 
     let name = &args[0];
@@ -181,9 +224,9 @@ fn add_tag(context : &mut gui::AppContext, args : &Vec<String>) -> Result<(), Bo
 }
 
 
-fn get_ids_from_args(args : &[String]) -> Result<Vec<inventory::id_type>,Box<Error>>
+fn get_ids_from_args(args : &[String]) -> Result<Vec<inventory::IdType>,Box<dyn Error>>
 {
-    let mut tag_ids : Vec<inventory::id_type> = Vec::new();
+    let mut tag_ids : Vec<inventory::IdType> = Vec::new();
 
     for tag_str in args { tag_ids.push(tag_str.parse()?); }
 
@@ -192,11 +235,14 @@ fn get_ids_from_args(args : &[String]) -> Result<Vec<inventory::id_type>,Box<Err
 
 fn add_item(context : &mut gui::AppContext, args : &Vec<String>) -> Result<(), Box<dyn Error>>
 {
-    if args.len() < 4 {return Err(Box::new(error::GenericError::new("Error invalid number of arguments".to_string())));}
+    if args.len() != 2
+        {return Err(Box::new(error::GenericError::new("Error invalid number of arguments".to_string())));}
 
-    let con_id : inventory::id_type = args[1].parse()?;
+    let con_id : inventory::IdType = args[1].parse()?;
+    let name = &args[0];
 
-    //todo
+    context.inventory.add_item(name, con_id)?;
+
     return Ok(());
 }
 
@@ -219,26 +265,26 @@ fn print_help_msg(context : &mut gui::AppContext)
 }
 
 
-fn benchmark_test()
-{
-    let mut strings : Vec<String> = Vec::new();
-
-    for index in 0..10000000
-    {
-        strings.push(format!("So this needs to be a very long string, so i will write on and on for a little bit {}",index));
-    } 
-
-    println!("Filled struct {}",strings.len());
-
-    for stri in strings.iter()
-    {
-        if stri.contains("9999999")
-        {
-            println!("found!!! {}",stri);
-            return;
-        }
-    }
-}
+//fn benchmark_test()
+//{
+//    let mut strings : Vec<String> = Vec::new();
+//
+//    for index in 0..10000000
+//    {
+//        strings.push(format!("So this needs to be a very long string, so i will write on and on for a little bit {}",index));
+//    } 
+//
+//    println!("Filled struct {}",strings.len());
+//
+//    for stri in strings.iter()
+//    {
+//        if stri.contains("9999999")
+//        {
+//            println!("found!!! {}",stri);
+//            return;
+//        }
+//    }
+//}
 
 fn main()
 {
