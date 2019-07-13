@@ -148,20 +148,20 @@ fn draw_overview<B>(f: &mut Frame<B>, area: Rect, context : &AppContext) where B
     // .highlight_symbol(">")
     // .render(f, chunks[0]);
 
-    let conts = context.inventory.containers.iter().map(|value| 
-    {
-        Text::styled
-        (
-            format!("{:04} : {}", value.id, value.name),
-            style
-        )
-    });
-
     let comp = context.inventory.compartments.iter().map(|value| 
     {
         Text::styled
         (
-            format!("{:04} : {}", value.id, value.name),
+            format!("{:04X} : {}", value.id, value.name),
+            style
+        )
+    });
+
+    let conts = context.inventory.containers.iter().map(|value| 
+    {
+        Text::styled
+        (
+            format!("{:04X} {:04X} : {}",value.id_comp, value.id, value.name),
             style
         )
     });
@@ -170,7 +170,7 @@ fn draw_overview<B>(f: &mut Frame<B>, area: Rect, context : &AppContext) where B
     {
         Text::styled
         (
-            format!("{:04} : {}", value.id, value.name),
+            format!("{:04X} {:04X} : {}",value.id_cont, value.id, value.name),
             style
         )
     });
@@ -179,7 +179,7 @@ fn draw_overview<B>(f: &mut Frame<B>, area: Rect, context : &AppContext) where B
     {
         Text::styled
         (
-            format!("{:4} : {}", value.id, value.name),
+            format!("{:4X} : {}", value.id, value.name),
             style
         )
     });
@@ -245,7 +245,7 @@ pub fn get_input_str_and_clear(gui_context : &mut AppContext) -> String
     gui_context.txt_input.clear();
     gui_context.cursor_pos = 0;
     gui_context.gui_dirty = true;
-    gui_context.scroll_back = gui_context.scroll_items.len();
+    gui_context.scroll_back = 0;
     return tmp;
 }
 
@@ -328,7 +328,9 @@ pub fn handle_input_key (key : Key, context : &mut AppContext)
         Key::Esc => 
         {
             context.gui_dirty = true;
-            context.txt_input.clear();context.cursor_pos = 0;
+            context.txt_input.clear();
+            context.cursor_pos = 0;
+            context.scroll_back = 0;
         }
 
         Key::Backspace => 
@@ -341,14 +343,14 @@ pub fn handle_input_key (key : Key, context : &mut AppContext)
 
         Key::Up => 
         {
-            context.scroll_back = if context.scroll_back + 1  < context.scroll_items.len() {context.scroll_back + 1} else {0};
+            context.scroll_back = if context.scroll_back < 1 {context.scroll_items.len() - 1} else {context.scroll_back - 1};
             let scroll_item = context.scroll_items[ context.scroll_back].clone();
             set_txt_input(context, scroll_item);
         }
 
         Key::Down => 
         {
-            context.scroll_back = if context.scroll_back < 1 {context.scroll_items.len() - 1} else {context.scroll_back - 1};
+            context.scroll_back = if context.scroll_back + 1  < context.scroll_items.len() {context.scroll_back + 1} else {0};
             let scroll_item = context.scroll_items[ context.scroll_back].clone();
             set_txt_input(context, scroll_item);
         }

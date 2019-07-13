@@ -35,7 +35,7 @@ pub struct Container
 {
     pub name  : String,
     pub id    : IdType,
-    id_comp   : IdType,
+    pub id_comp   : IdType,
     items : Vec<IdType>,
     tags  : Vec<IdType>
 }
@@ -45,6 +45,7 @@ pub struct Item
 {
     pub name    : String,
     pub id      : IdType,
+    pub id_cont : IdType,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -124,6 +125,7 @@ impl Inventory
             {
                 name  : String::from(name),
                 id : self.cnt_item,
+                id_cont : con_id,
             }
         );
 

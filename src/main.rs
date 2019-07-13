@@ -171,6 +171,8 @@ fn dispatch_input(input : &str, context : &mut gui::AppContext) -> bool
         _ => {context.write_to_terminal(&format!("No use for \"{}\" and args: {:?}\n",first_arg, args));}
     }
 
+    context.scroll_items.push(input.to_string());
+
     return false;
 }
 
