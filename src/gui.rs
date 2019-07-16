@@ -1,6 +1,7 @@
 
 use std::io::{self};
 use std::error::Error;
+use std::cmp::{max};
 
 use tui::{Frame, Terminal};
 use tui::backend::Backend;
@@ -127,6 +128,47 @@ fn draw_overview<B>(f: &mut Frame<B>, area: Rect, context : &AppContext) where B
     .direction(Direction::Vertical)
     .constraints([Constraint::Percentage(70), Constraint::Percentage(30)].as_ref())
     .split(area);
+    
+    let comp = context.inventory.compartments.iter().map(|value| 
+    {
+        let txt = format!("{:04X} : {}", value.id, value.name);
+        Text::styled
+        (
+            txt,
+            style
+        )
+    });
+
+    let conts = context.inventory.containers.iter().map(|value| 
+    {
+        let txt = format!("{:04X} {:04X} : {}",value.id_comp, value.id, value.name); 
+        Text::styled
+        (
+            txt,
+            style
+        )
+    });
+
+    let items = context.inventory.items.iter().map(|value| 
+    {
+        let txt = format!("{:04X} {:04X} : {}",value.id_cont, value.id, value.name); 
+        Text::styled
+        (
+            txt,
+            style
+        )
+    });
+
+    let tags = context.inventory.tags.iter().map(|value| 
+    {
+        let txt = format!("{:4X} : {}", value.id, value.name);
+        Text::styled
+        (
+            txt,    
+            style
+        )
+    });
+
 
 
     let chunks = Layout::default()
@@ -148,41 +190,7 @@ fn draw_overview<B>(f: &mut Frame<B>, area: Rect, context : &AppContext) where B
     // .highlight_symbol(">")
     // .render(f, chunks[0]);
 
-    let comp = context.inventory.compartments.iter().map(|value| 
-    {
-        Text::styled
-        (
-            format!("{:04X} : {}", value.id, value.name),
-            style
-        )
-    });
 
-    let conts = context.inventory.containers.iter().map(|value| 
-    {
-        Text::styled
-        (
-            format!("{:04X} {:04X} : {}",value.id_comp, value.id, value.name),
-            style
-        )
-    });
-
-    let items = context.inventory.items.iter().map(|value| 
-    {
-        Text::styled
-        (
-            format!("{:04X} {:04X} : {}",value.id_cont, value.id, value.name),
-            style
-        )
-    });
-
-    let tags = context.inventory.tags.iter().map(|value| 
-    {
-        Text::styled
-        (
-            format!("{:4X} : {}", value.id, value.name),
-            style
-        )
-    });
 
     List::new(comp)
         .block(Block::default().borders(Borders::ALL).title(" Compartmets "))

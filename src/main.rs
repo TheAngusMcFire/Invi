@@ -191,8 +191,9 @@ fn add_container(context : &mut gui::AppContext, args : &Vec<String>) -> Result<
     if args.len() < 2
         {return Err(Box::new(error::GenericError::new("Error invalid number of arguments".to_string())));}
 
-    let name = &args[0];    
-    let com_id : inventory::IdType = args[1].parse()?;
+    let name = &args[0];
+    let value = i64::from_str_radix(&args[1], 16)?;
+    let com_id : inventory::IdType = value as inventory::IdType;
     let tags = get_ids_from_args(&args[2..])?; 
 
     context.inventory.add_container(name,  com_id, tags)?;
@@ -232,17 +233,20 @@ fn get_ids_from_args(args : &[String]) -> Result<Vec<inventory::IdType>,Box<dyn 
 {
     let mut tag_ids : Vec<inventory::IdType> = Vec::new();
 
-    for tag_str in args { tag_ids.push(tag_str.parse()?); }
+    for tag_str in args {  tag_ids.push(i64::from_str_radix(tag_str, 16)? as inventory::IdType); }
 
     return Ok(tag_ids);
 }
 
+use std::i64;
 fn add_item(context : &mut gui::AppContext, args : &Vec<String>) -> Result<(), Box<dyn Error>>
 {
     if args.len() != 2
         {return Err(Box::new(error::GenericError::new("Error invalid number of arguments".to_string())));}
 
-    let con_id : inventory::IdType = args[1].parse()?;
+    let value = i64::from_str_radix(&args[1], 16)?;
+
+    let con_id : inventory::IdType = value as inventory::IdType;
     let name = &args[0];
 
     context.inventory.add_item(name, con_id)?;
